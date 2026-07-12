@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CityDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/city_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"city.japan.osaka"
+display_name_ko = "오사카"
+country_id = &"country.japan"
+rent_per_day = 4500
+entry_cost = 150000
+demand = 2.8
+price_sensitivity = 1.1
+competition = 1.8
+recheck_days = 6

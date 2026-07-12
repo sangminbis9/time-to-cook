@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CityDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/city_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"city.japan.nagoya"
+display_name_ko = "나고야"
+country_id = &"country.japan"
+rent_per_day = 3500
+entry_cost = 100000
+demand = 2.2
+price_sensitivity = 1.1
+competition = 1.3
+recheck_days = 7

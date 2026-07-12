@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/item_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/item_raw_chicken.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"item.raw_chicken"
+display_name_ko = "생닭"
+texture = ExtResource("2")
+fridge_storable = true
+submittable = false

@@ -1,0 +1,45 @@
+[gd_scene load_steps=5 format=3 uid="uid://player000001"]
+
+[ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_ctrl"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player_mint.png" id="2_sheet"]
+[ext_resource type="Texture2D" path="res://assets/sprites/highlight_ring.png" id="3_ring"]
+
+[sub_resource type="SceneReplicationConfig" id="repl_1"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:facing")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:anim_frame")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+
+[node name="Player" type="Node2D"]
+script = ExtResource("1_ctrl")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_sheet")
+hframes = 8
+
+[node name="Camera" type="Camera2D" parent="."]
+enabled = false
+position_smoothing_enabled = false
+
+[node name="Prompt" type="Label" parent="."]
+offset_left = -60.0
+offset_top = -34.0
+offset_right = 60.0
+offset_bottom = -18.0
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.353, 0.275, 0.196, 1)
+theme_override_colors/font_outline_color = Color(0.969, 0.937, 0.851, 1)
+theme_override_constants/outline_size = 2
+horizontal_alignment = 1
+
+[node name="Highlight" type="Sprite2D" parent="."]
+top_level = true
+texture = ExtResource("3_ring")
+
+[node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("repl_1")

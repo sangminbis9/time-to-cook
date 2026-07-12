@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MarketSourceDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/market_source_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"market.broker.pro"
+display_name_ko = "전문 정보상"
+kind = 0
+tier = 2
+price = 8000
+scam_chance = 0.05
+accuracy_error = 0.1

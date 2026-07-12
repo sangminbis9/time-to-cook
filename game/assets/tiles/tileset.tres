@@ -1,0 +1,29 @@
+[gd_resource type="TileSet" load_steps=9 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/tile_floor_wood.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/tile_floor_wood_alt.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/tile_wall_top.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/tile_wall_face.png" id="4"]
+
+[sub_resource type="TileSetAtlasSource" id="atlas_floor"]
+texture = ExtResource("1")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="atlas_floor_alt"]
+texture = ExtResource("2")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="atlas_wall_top"]
+texture = ExtResource("3")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="atlas_wall_face"]
+texture = ExtResource("4")
+0:0/0 = 0
+
+[resource]
+tile_size = Vector2i(32, 32)
+sources/0 = SubResource("atlas_floor")
+sources/1 = SubResource("atlas_floor_alt")
+sources/2 = SubResource("atlas_wall_top")
+sources/3 = SubResource("atlas_wall_face")

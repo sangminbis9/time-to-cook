@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MarketSourceDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/market_source_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"market.advisor.local"
+display_name_ko = "현지 식당 주인 자문"
+kind = 1
+tier = 3
+price = 15000
+scam_chance = 0.0
+accuracy_error = 0.0

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EmployeeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/employee_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"employee.prep.basic"
+display_name_ko = "전처리 직원"
+role = 0
+hire_cost = 5000
+wage_per_day = 3000
+work_interval = 1.2
+move_speed = 2.5

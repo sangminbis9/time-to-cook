@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['tag_name']\\); print\\([a['name'] for a in d['assets'] if 'linux' in a['name'].lower\\(\\)]\\)\")",
+      "Bash(mkdir -p ~/godot)",
+      "Read(//home/sangmin/**)",
+      "Bash(unzip -o -q godot47.zip)",
+      "Bash(ln -sf ~/godot/Godot_v4.7-stable_linux.x86_64 ~/godot/godot)",
+      "Bash(~/godot/godot --version)",
+      "Bash(tar xzf *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['tag_name']\\); print\\([a['name'] for a in d['assets']][:10]\\)\")",
+      "Bash(mv /mnt/d/Coding/time-to-cook/game/addons/gut /tmp/claude-1000/-mnt-d-Coding-time-to-cook/7f590b86-557d-4a95-a168-80112e283e8e/scratchpad/gut-9.6.1-replaced)",
+      "Bash(cp -r Gut-9.7.1/addons/gut /mnt/d/Coding/time-to-cook/game/addons/)"
+    ]
+  }
+}

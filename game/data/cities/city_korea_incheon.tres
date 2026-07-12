@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CityDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/city_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"city.korea.incheon"
+display_name_ko = "인천"
+country_id = &"country.korea"
+rent_per_day = 2000
+entry_cost = 0
+demand = 1.5
+price_sensitivity = 1.0
+competition = 0.8
+recheck_days = 7

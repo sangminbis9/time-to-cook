@@ -1,0 +1,4 @@
+# Godot 4 cache/import artifacts — regenerated per machine, never commit
+.godot/
+*.tmp
+export_presets.cfg.bak
