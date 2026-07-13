@@ -101,6 +101,8 @@ func _run() -> void:
 			await _scenario_save_write()
 		"save_load":
 			await _scenario_save_load()
+		"screenshot":
+			await _scenario_screenshot()
 		_:
 			_finish(false, "알 수 없는 시나리오: %s" % scenario)
 
@@ -842,6 +844,16 @@ func _all_passed() -> bool:
 		if not bool(check["pass"]):
 			return false
 	return true
+
+
+## 렌더링 확인용 (headless 불가 — 화면 필요): 매장을 그린 뒤 뷰포트를
+## `<result_path>.png`로 저장한다. 타일·스프라이트 아트 검수에 사용.
+func _scenario_screenshot() -> void:
+	for i in range(30):
+		await get_tree().process_frame
+	var img: Image = get_viewport().get_texture().get_image()
+	var err: Error = img.save_png(result_path + ".png")
+	_finish(err == OK, "" if err == OK else "저장 실패: %d" % err)
 
 
 func _finish(passed: bool, error: String) -> void:
