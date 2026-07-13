@@ -39,8 +39,9 @@
 - P9+ 경영 확장: 대출 3건·만기 구조(§9 전체), 광고(§8.3), 연구 트리(§20), 동적 경제(§8.1)
 - 콘텐츠: 양념 레시피 변형(§19.1), 랜덤 이벤트·재난(§23), 사운드(§34), 캐릭터 스킬(§11)
 - 아트: 1차 외주분 24종 반영 완료 (`tools/import_art.py`로 다운스케일·배경 제거,
-  원본은 `art_src/`). 재생성 필요분은 `docs/ART_SPEC.md`의 ChatGPT 프롬프트 참고
-  (필수: station_submit·player_employee / 권장: 마루 타일 2종)
+  원본은 `art_src/`). 타일 벌어짐은 `tools/fix_tiles.py`(이음선 크롭·미러 변형)와
+  설비 가로 채움으로 보정. 재생성 필요분은 `docs/ART_SPEC.md`의 ChatGPT 프롬프트 참고
+  (필수: station_submit·player_employee)
 
 ## 의도적 단순화 (슬라이스 범위)
 

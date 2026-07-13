@@ -48,9 +48,10 @@
 
 (옆모습은 왼쪽만 있으면 된다 — 오른쪽은 내가 미러링한다. 7·8번이 5·6번과 같아도 무방.)
 
-## 3. `tile_floor_wood.png` — 원목 마루 타일 (권장, 1차 품질 미달)
+## 3. `tile_floor_wood.png` — 원목 마루 타일 (선택)
 
-1차 납품분은 널빤지가 10줄이나 돼 32×32로 줄이면 나뭇결이 노이즈로 뭉개졌다.
+1차 납품분은 널빤지가 10줄이라 뭉개졌으나 `tools/fix_tiles.py`가 이음선 3줄 구간을
+잘라내 보정 적용 완료 — 현재 상태로도 쓸 만하다. 전용 타일로 교체하고 싶을 때만 생성.
 **한 타일에 널빤지 2~3줄**의 큼직한 스케일이어야 한다.
 
 > A single seamless pixel art floor tile of warm honey-brown wooden planks, Stardew
@@ -62,7 +63,7 @@
 > edge. Flat colors, no lighting gradient, no vignette, square image, fills the whole
 > canvas with no border or margin.
 
-## 4. `tile_floor_wood_alt.png` — 마루 변형 타일 (권장, 위와 세트)
+## 4. `tile_floor_wood_alt.png` — 마루 변형 타일 (선택, 위와 세트 — 현재는 본 타일 미러로 합성 중)
 
 > The same seamless pixel art wooden plank floor tile as before (2-3 large horizontal
 > honey-brown planks, Stardew Valley style, flat top-down view, dark seams, seamless

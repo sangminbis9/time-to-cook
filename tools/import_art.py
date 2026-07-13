@@ -275,16 +275,30 @@ def paste(dst: bytearray, dw: int, src: bytearray, sw: int, sh: int, ox: int, oy
 def fit_sprite(
     w: int, h: int, px: bytearray, tw: int, th: int, anchor: str = "center", pad: int = 1
 ) -> bytearray:
-    """배경 제거된 이미지의 내용을 tw×th 안에 비율 유지로 맞춘다."""
+    """배경 제거된 이미지의 내용을 tw×th 안에 비율 유지로 맞춘다.
+
+    anchor "fill_bottom": 가로를 tw에 정확히 채우고 바닥에 붙인다
+    (설비처럼 옆 타일과 이어져야 하는 오브젝트용 — 틈 방지).
+    """
     bbox = content_bbox(w, h, px)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    scale = min((tw - pad * 2) / bw, (th - pad * 2) / bh)
-    ow = max(1, round(bw * scale))
-    oh = max(1, round(bh * scale))
+    if anchor == "fill_bottom":
+        # 옆 타일과 이어지도록 가로를 정확히 채운다 (세로는 필요 시 살짝 압축)
+        ow = tw
+        oh = min(th, max(1, round(bh * tw / bw)))
+    else:
+        scale = min((tw - pad * 2) / bw, (th - pad * 2) / bh)
+        ow = max(1, round(bw * scale))
+        oh = max(1, round(bh * scale))
     small = downscale(w, h, px, bbox, ow, oh)
     out = bytearray(tw * th * 4)
     ox = (tw - ow) // 2
-    oy = th - pad - oh if anchor == "bottom" else (th - oh) // 2
+    if anchor == "center":
+        oy = (th - oh) // 2
+    elif anchor == "fill_bottom":
+        oy = th - oh
+    else:
+        oy = th - pad - oh
     paste(out, tw, small, ow, oh, ox, oy)
     return out
 
@@ -413,13 +427,13 @@ SPECS: dict[str, tuple[str, int, int, str]] = {
     "tile_floor_wood_alt.png": ("tile", 32, 32, ""),
     "tile_wall_face.png": ("tile", 32, 32, ""),
     "tile_wall_top.png": ("tile", 32, 32, ""),
-    "station_counter.png": ("sprite", 32, 32, "bottom"),
-    "station_cutting_board.png": ("sprite", 32, 32, "bottom"),
-    "station_breading_table.png": ("sprite", 32, 32, "bottom"),
-    "station_fryer.png": ("sprite", 32, 32, "bottom"),
-    "station_fridge.png": ("sprite", 32, 32, "bottom"),
-    "station_ingredient_box.png": ("sprite", 32, 32, "bottom"),
-    "station_submit.png": ("sprite", 32, 32, "bottom"),
+    "station_counter.png": ("sprite", 32, 32, "fill_bottom"),
+    "station_cutting_board.png": ("sprite", 32, 32, "fill_bottom"),
+    "station_breading_table.png": ("sprite", 32, 32, "fill_bottom"),
+    "station_fryer.png": ("sprite", 32, 32, "fill_bottom"),
+    "station_fridge.png": ("sprite", 32, 32, "bottom"),  # 단독 배치 — 비율 유지
+    "station_ingredient_box.png": ("sprite", 32, 32, "fill_bottom"),
+    "station_submit.png": ("sprite", 32, 32, "fill_bottom"),
     "item_raw_chicken.png": ("sprite", 16, 16, "center"),
     "item_cut_chicken.png": ("sprite", 16, 16, "center"),
     "item_breaded_chicken.png": ("sprite", 16, 16, "center"),
