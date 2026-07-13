@@ -1,104 +1,103 @@
-# Time to Cook — 도트 에셋 외주 명세서
+# Time to Cook — 추가 생성 필요 에셋 (ChatGPT 프롬프트 포함)
 
-## 공통 규격 (모든 에셋 필수)
+1차 납품분 25종 중 24종은 `tools/import_art.py` 파이프라인으로 게임에 반영 완료.
+아래는 **미납품·사용 불가·품질 미달**로 재생성이 필요한 것들이다.
 
-- **PNG, RGBA, 투명 배경** (타일 4종만 불투명 허용). 흰 배경 금지.
-- **네이티브 해상도** — 1 이미지 픽셀 = 1 게임 픽셀. 512×512로 "픽셀처럼 보이게" 그린 것 불가.
-  부득이 업스케일 출력이면 정수배(×2, ×4…)의 깨끗한 nearest 스케일만 허용 (내가 다운스케일함).
-- **안티앨리어싱 금지** — 알파는 0 또는 255만. 반투명 가장자리 헤일로 금지.
-- **시점**: 스타듀밸리 실내와 동일한 탑다운 3/4 시점. 벽은 정면이 보이고, 오브젝트는 위+앞이 보임.
-  아이소메트릭(사선) 금지.
-- **스타일**: 따뜻하고 아기자기한 힐링 카페. 2~3단 명암, 어두운 갈색(#5A4632) 계열 외곽선,
-  음식은 귀엽고 먹음직스럽게.
-- **팔레트** (이 계열로 통일, 완전 고정은 아님):
-  - 크림 `#F7EFD9` / 크림 그림자 `#EAD9B8`
-  - 나무 `#B98A5E` / 진한 나무 `#96683F` / 밝은 갈색 `#D9B48F`
-  - 민트 `#A8D8C9` / 진한 민트 `#7FBFA8`
-  - 하늘 `#A3CDE8` · 살구 `#F5C6A5` / 진한 살구 `#E8A164`
-  - 외곽선 `#5A4632`
-- **파일명을 아래와 정확히 일치**시켜 주세요. 규격이 다르면 통합 시 수작업이 늘어납니다.
+## 생성 시 주의 (1차 납품에서 배운 것)
 
-영문 프롬프트 공통 접두어 제안:
-> cozy warm pixel art, Stardew Valley interior style, top-down 3/4 view, cream and wood tones,
-> clean 1px dark brown outline, limited palette, no anti-aliasing, transparent background
+- **이미지 하나에 에셋 하나만.** 두 에셋을 비교 배치하거나 파일명 라벨 텍스트를
+  그려 넣으면 사용 불가 (1차 `player_employee.png`가 이걸로 탈락).
+- 배경은 **투명 또는 체커보드 무늬**로. 회색 그라데이션·스포트라이트 배경 금지
+  (자동 제거가 어려움).
+- 고해상도 출력은 괜찮다 — 내 파이프라인이 네이티브 해상도로 다운스케일한다.
+  단, **또렷한 픽셀 격자**가 있는 진짜 픽셀아트 스타일이어야 한다.
+  붓 터치·사실적 질감·연기 이펙트가 섞인 반실사풍은 뭉개진다 (1차 `item_burnt_food.png`).
+- 생성 후 이미지에 글자·워터마크·여러 변형 시안이 없는지 확인하고 전달.
+
+프롬프트는 그대로 복사해 쓰면 된다. 파일명만 지켜서 저장.
 
 ---
 
-## 1. 타일 — 32×32, 불투명 (4개)
+## 1. `station_submit.png` — 제출대 (필수, 1차 미납품)
 
-| 파일명 | 내용 |
-|---|---|
-| `tile_floor_wood.png` | 따뜻한 원목 마루 바닥. 타일링 시 이음새가 안 보여야 함 |
-| `tile_floor_wood_alt.png` | 위 바닥의 미세 변형(체커 배치용 — 널빤지 어긋남 등 은은한 차이) |
-| `tile_wall_face.png` | 실내 벽 **정면** (스타듀식): 크림색 벽지 + 하단 8px 목재 걸레받이. 좌우 타일링 가능 |
-| `tile_wall_top.png` | 벽 상단 캡 (진한 목재 톤, 위에서 본 벽 두께) |
+게임 내 유일한 민트색 상판 설비. 다른 나무 작업대와 한눈에 구분돼야 한다.
 
-## 2. 설비 — 32×32, 투명 배경 (7개)
+> Cozy warm pixel art in Stardew Valley interior style, top-down 3/4 view, a single
+> restaurant order pick-up counter: wooden cabinet body with a MINT GREEN painted
+> countertop, a small golden-yellow call bell sitting on top, and a tiny order ticket
+> slip. Clean 1px dark brown (#5A4632) outline, 2-3 shade cel coloring, cream and wood
+> tone palette with mint green (#A8D8C9) accent. One object only, centered, transparent
+> background, no text, no labels, no floor shadow gradient — just a small hard pixel
+> shadow at the base. Square image.
 
-바닥 타일 위에 얹히는 오브젝트. 아래쪽 2~3px는 그림자 겸 접지감.
+## 2. `player_employee.png` — 직원 캐릭터 시트 (필수, 1차 사용 불가)
 
-| 파일명 | 내용 |
-|---|---|
-| `station_counter.png` | 일반 나무 작업대 (밝은 상판 + 나무 몸체) |
-| `station_cutting_board.png` | 작업대 + 크림색 도마 + 식칼 |
-| `station_breading_table.png` | 작업대 + 튀김가루 볼 (흰 가루가 보이게) |
-| `station_fryer.png` | 스테인리스 튀김기: 금색 기름조 + 바스켓 손잡이 + 다이얼 2개 |
-| `station_submit.png` | 제출대: **민트색 상판** + 노란 호출벨 (다른 작업대와 확실히 구분) |
-| `station_fridge.png` | 민트색 소형 냉장고 (2도어, 은색 손잡이). 32×32 안에서 세로로 큼직하게 |
-| `station_ingredient_box.png` | 나무 상자에 담긴 생닭들 (분홍 생닭이 위로 보이게) |
+1차 납품분은 두 시트를 한 장에 비교 배치 + 파일명 텍스트가 박혀 있어 탈락.
+**한 장에 이 캐릭터 하나의 8프레임만** 담아야 한다.
 
-## 3. 음식 아이템 — 16×16, 투명 배경 (5개)
+> A pixel art character sprite sheet in Stardew Valley style, ONE single chibi character
+> repeated in 8 walking frames arranged in ONE horizontal row, evenly spaced on a
+> transparent background. The character: a cute cafe employee with a GRAY kerchief/bandana
+> on the head, white shirt, and GRAY apron, brown shoes, SD proportions (head is about
+> 60% of body height). Frame order left to right: (1) facing DOWN standing, (2) facing
+> DOWN mid-step, (3) facing UP standing showing back of head, (4) facing UP mid-step,
+> (5) facing LEFT standing in side profile, (6) facing LEFT mid-step, (7) facing LEFT
+> standing (same as 5), (8) facing LEFT mid-step (same as 6). All side-view frames face
+> LEFT only. Clean 1px dark brown outline, 2-3 shade cel coloring, small hard pixel
+> shadow under the feet. No text, no labels, no extra characters, no background scenery.
 
-저해상도에서 조리 단계가 한눈에 구분돼야 함 (가장 중요).
+(옆모습은 왼쪽만 있으면 된다 — 오른쪽은 내가 미러링한다. 7·8번이 5·6번과 같아도 무방.)
 
-| 파일명 | 내용 |
-|---|---|
-| `item_raw_chicken.png` | 생닭 (분홍, 통짜 덩어리) |
-| `item_cut_chicken.png` | 손질된 닭 — 분홍 조각 4개 |
-| `item_breaded_chicken.png` | 튀김옷 입힌 조각 4개 (흰 가루 톤) |
-| `item_dakgangjeong.png` | 완성 닭강정 — 노릇한 황금색 조각 4개 + 소스 포인트, 먹음직스럽게 |
-| `item_burnt_food.png` | 탄 조각 4개 (진갈색~검정) + 연기 픽셀 1~2개 |
+## 3. `tile_floor_wood.png` — 원목 마루 타일 (권장, 1차 품질 미달)
 
-## 4. 캐릭터 시트 — 투명 배경 (2개, 가능하면 3개)
+1차 납품분은 널빤지가 10줄이나 돼 32×32로 줄이면 나뭇결이 노이즈로 뭉개졌다.
+**한 타일에 널빤지 2~3줄**의 큼직한 스케일이어야 한다.
 
-- **프레임 크기 32×32**, 가로로 이어붙인 시트.
-- SD 비율 (머리가 몸의 ~60%), 흰 셔츠 + 앞치마, 발밑 접지 그림자.
-- 방향 구분이 명확해야 함 (아래=얼굴, 위=뒷머리, 좌/우=옆얼굴).
+> A single seamless pixel art floor tile of warm honey-brown wooden planks, Stardew
+> Valley interior style, viewed straight from above. IMPORTANT: only 2 or 3 large
+> horizontal planks fill the entire tile — big chunky plank scale, NOT many thin planks.
+> Each plank is a flat warm wood color (#B98A5E) with 2-3 subtle darker grain lines and
+> a dark brown (#96683F) 1px seam between planks. The pattern must tile seamlessly:
+> plank seams run fully edge to edge horizontally, and the top edge continues the bottom
+> edge. Flat colors, no lighting gradient, no vignette, square image, fills the whole
+> canvas with no border or margin.
 
-**옵션 A (기본, 256×32 = 8프레임):** 프레임 순서
-`아래0, 아래1, 위0, 위1, 왼쪽0, 왼쪽1, 오른쪽0, 오른쪽1` (0/1은 걷기 발 교차)
+## 4. `tile_floor_wood_alt.png` — 마루 변형 타일 (권장, 위와 세트)
 
-**옵션 B (권장, 512×32 = 16프레임):** 방향당 걷기 4프레임
-`아래0..3, 위0..3, 왼쪽0..3, 오른쪽0..3` — 이쪽이 훨씬 부드럽고, 코드는 내가 맞춤
+> The same seamless pixel art wooden plank floor tile as before (2-3 large horizontal
+> honey-brown planks, Stardew Valley style, flat top-down view, dark seams, seamless
+> edges), but a subtle variation: the vertical joints between plank ends are offset to
+> different positions, and one plank has a small darker knot. Same palette (#B98A5E
+> base, #96683F seams), same plank scale and thickness so the two tiles can be placed
+> in a checkerboard without visible pattern breaks. Square image, fills the whole
+> canvas, no border.
 
-| 파일명 | 내용 |
-|---|---|
-| `player_mint.png` | 플레이어 1: 갈색 머리 + **민트 앞치마** |
-| `player_apricot.png` | 플레이어 2: 짙은 머리 + **살구색 앞치마** |
-| `player_employee.png` (선택) | 직원: 회색 톤 유니폼 + 두건. 없으면 player_mint을 톤 변경해 사용 |
+## 5. `tile_wall_top.png` — 벽 상단 캡 타일 (선택, 현재 톤이 밝아 벽 정면과 구분 약함)
 
-시트가 어려우면 프레임별 개별 PNG(`player_mint_down_0.png` 식 이름)로 줘도 됨 — 내가 조립.
+> A single seamless pixel art tile of a dark wooden wall cap viewed straight from above
+> — the flat top surface of an interior wall, Stardew Valley style. Rich DARK brown wood
+> (#6B4A2F base, #5A4632 seams), 2 wide planks running horizontally with subtle grain,
+> clearly darker than a cream wallpaper. Flat colors, seamless left-right and top-bottom,
+> square image filling the whole canvas, no border, no lighting gradient.
 
-## 5. UI — 투명 배경 (2개)
+## 6. `item_burnt_food.png` — 탄 음식 (선택, 현재 반실사풍을 후처리해 임시 사용 중)
 
-| 파일명 | 규격 | 내용 |
-|---|---|---|
-| `ui_panel.png` | 24×24 | 크림색 패널 9-patch. 테두리 4px 이내 (나무색 외곽), 중앙은 단색 크림 |
-| `ui_slot.png` | 20×20 | 인벤토리 슬롯 한 칸 (움푹한 크림/나무 톤) |
+> Cute pixel art icon of four burnt chicken pieces in Stardew Valley item style: chunky
+> dark charcoal-brown pieces (#3A2A20 to #1E1614) with a few tiny ember-orange pixels,
+> and one or two small gray pixel smoke puffs above. Clean 1px darkest-brown outline,
+> 2-3 shade cel coloring, flat colors, single centered icon on a transparent background,
+> no text, square image. Simple and readable at very small size.
 
-`highlight_ring.png`(선택 외곽선)은 프로그램 생성 유지 — 제작 불필요.
+## 7. `decor_rug.png` — 러그 (선택, 1차 미납품)
 
-## 6. 장식 소품 (선택 — 있으면 매장이 살아남) — 32×32, 투명
-
-`decor_plant.png`(화분), `decor_lamp.png`(펜던트 조명), `decor_menu_board.png`(벽걸이 메뉴판),
-`decor_table.png`(2인 테이블), `decor_chair.png`(의자), `decor_rug.png`(러그, 불투명 가능)
+> A pixel art round rug for a cozy cafe interior, Stardew Valley style, viewed straight
+> from above: soft mint green (#A8D8C9) oval rug with a cream (#F7EFD9) border band and
+> simple stitch marks, flat 2-3 shade cel coloring, 1px darker outline. Single object
+> centered on a transparent background, no text, square image.
 
 ---
 
 ## 납품 방법
 
-위 파일명 그대로 한 폴더(또는 zip)로 전달. 내가 `game/assets/sprites/`에 반영하면
-게임에 즉시 적용된다. 규격 미달(크기·알파·업스케일)은 가능한 범위에서 내가 후처리하지만,
-**프레임 순서와 파일명**은 반드시 지켜야 한다.
-
-우선순위: ①캐릭터 ②음식 ③설비 ④타일 ⑤UI ⑥장식
+파일명 그대로 전달해 주면 `python3 tools/import_art.py <폴더> game/assets/sprites`로
+반영한다. 원본은 `art_src/`에 보관된다.

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://storegame0001"]
+[gd_scene load_steps=6 format=3 uid="uid://storegame0001"]
 
 [ext_resource type="Script" path="res://scripts/store/store_gameplay.gd" id="1_store"]
 [ext_resource type="TileSet" path="res://assets/tiles/tileset.tres" id="2_tiles"]
 [ext_resource type="Script" path="res://scripts/stations/floor_items_view.gd" id="3_floor_items"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="4_hud"]
+[ext_resource type="Texture2D" path="res://assets/sprites/decor/decor_menu_board.png" id="5_menu"]
 
 [node name="StoreGameplay" type="Node2D"]
 script = ExtResource("1_store")
@@ -13,6 +14,12 @@ tile_set = ExtResource("2_tiles")
 
 [node name="Walls" type="TileMapLayer" parent="."]
 tile_set = ExtResource("2_tiles")
+
+[node name="Decor" type="Node2D" parent="."]
+
+[node name="MenuBoard" type="Sprite2D" parent="Decor"]
+texture = ExtResource("5_menu")
+position = Vector2(432, 16)
 
 [node name="World" type="Node2D" parent="."]
 y_sort_enabled = true
