@@ -28,6 +28,8 @@ signal fridge_changed
 signal fridge_lock_changed(owner_peer: int)
 signal employee_changed(eid: int)
 signal stores_changed
+## 내 매장의 이벤트(§23.1) 시작·진행·해제 시 발신
+signal store_event_changed
 signal market_info_changed
 signal snapshot_applied
 signal fail_notified(msg_key: String)
@@ -66,6 +68,16 @@ var next_eid: int = 1
 ## 주문 스폰 간격 (초; 데이터 조정 가능)
 var order_interval_min: float = 8.0
 var order_interval_max: float = 14.0
+
+## 매장 이벤트 (§23.1) 발생 확률 — 매일 영업 시작 시 매장별 1회 판정
+var event_fire_chance: float = 0.10
+var event_blackout_chance: float = 0.10
+## 튀김기에서 음식이 타면 이 확률로 화재 (대응 가능한 원인 — 태우지 말 것)
+var event_burnt_fire_chance: float = 0.35
+## 화재 진압에 필요한 상호작용(J) 횟수 (§23.3 소화기)
+const EXTINGUISH_HITS: int = 3
+## 오늘 예정된 매장 이벤트 (서버 전용 런타임): city_id → {"type", "at"(영업 경과초)}
+var _scheduled_events: Dictionary = {}
 
 var layout: StoreLayout
 
@@ -126,9 +138,12 @@ func _physics_process(delta: float) -> void:
 		return
 	for city_id: String in live.keys():
 		var s: LiveStore = live[city_id]
+		_tick_scheduled_event(city_id, s)
 		_tick_order_spawner(city_id, s, delta)
 		for eid: int in s.employees.keys():
 			_tick_employee(city_id, s, s.employees[eid], delta)
+		if String(s.event.get("type", "")) == "blackout":
+			continue  # 정전: 튀김기 조리 정지 (§23.1 — 아이템은 유지 §16.4)
 		for key: StringName in s.stations.keys():
 			var st: StationState = s.stations[key]
 			if st.item_iid == 0:
@@ -149,6 +164,10 @@ func _physics_process(delta: float) -> void:
 				_apply_item_data.rpc(item.to_dict())
 				_apply_station_state.rpc(city_id, key, st.item_iid,
 					after != CookStateMachine.State.BURNT)
+				# 태운 음식은 화재의 원인이 된다 (§23.1)
+				if after == CookStateMachine.State.BURNT and s.event.is_empty() \
+						and market_rng.randf() < event_burnt_fire_chance:
+					server_start_store_event(city_id, "fire", key)
 
 
 func is_server() -> bool:
@@ -302,11 +321,26 @@ func request_station_interact(key: StringName, player_tile: Vector2i) -> void:
 	var entry: Dictionary = layout.stations.get(key, {})
 	if not entry.is_empty() and not _in_reach(player_tile, entry["tile"]):
 		return
+	var def: StationDef = st.get_def()
+	# 매장 이벤트 대응 (§23.3): 불붙은 설비에 J = 진압, 정전 중 냉장고에 J = 차단기
+	if not s.event.is_empty():
+		var etype: String = String(s.event.get("type", ""))
+		if etype == "fire" and String(key) == String(s.event.get("station", "")):
+			var hits: int = int(s.event.get("hits", 0)) + 1
+			if hits >= EXTINGUISH_HITS:
+				_apply_store_event.rpc(city_id, {})
+			else:
+				var event: Dictionary = s.event.duplicate(true)
+				event["hits"] = hits
+				_apply_store_event.rpc(city_id, event)
+			return
+		if etype == "blackout" and def.kind == StationDef.Kind.FRIDGE:
+			_apply_store_event.rpc(city_id, {})
+			return
 	# 직원이 작업 중인 설비에는 개입 불가 (§10.6)
 	if s.station_employee.has(key):
 		notify_fail.rpc_id(peer, "employee_working")
 		return
-	var def: StationDef = st.get_def()
 	match def.kind:
 		StationDef.Kind.INGREDIENT_BOX:
 			_handle_dispense(city_id, s, peer, inv, def)
@@ -337,6 +371,11 @@ func request_station_work(key: StringName, player_tile: Vector2i) -> void:
 		return
 	var entry: Dictionary = layout.stations.get(key, {})
 	if not entry.is_empty() and not _in_reach(player_tile, entry["tile"]):
+		return
+	# 불붙은 설비에서는 작업 불가 — 먼저 진압 (§23.3)
+	if String(s.event.get("type", "")) == "fire" \
+			and String(key) == String(s.event.get("station", "")):
+		notify_fail.rpc_id(peer, "station_on_fire")
 		return
 	# 직원 작업에는 플레이어가 합류할 수 없다 (§10.6, §19.3)
 	if s.station_employee.has(key):
@@ -501,6 +540,9 @@ func server_spawn_order(city_id: String, recipe_id: StringName) -> Dictionary:
 
 
 func _tick_order_spawner(city_id: String, s: LiveStore, delta: float) -> void:
+	# 매장 이벤트 중에는 손님이 오지 않는다 (§23.1 — 화재·정전)
+	if not s.event.is_empty():
+		return
 	s.next_order_in -= delta
 	if s.next_order_in > 0.0:
 		return
@@ -520,6 +562,96 @@ func _tick_order_spawner(city_id: String, s: LiveStore, delta: float) -> void:
 	if market_rng.randf() >= accept:
 		return
 	server_spawn_order(city_id, recipe.id)
+
+
+# ── 매장 이벤트 (PLAN.md §23.1/§23.3) ───────────────────────────────
+## 슬라이스: 화재·정전 2종, 라이브 매장 전용(오프라인 매장은 무사고 추상화),
+## 매장당 동시 1건. 이벤트 중에는 주문이 멈춰 대응이 늦을수록 손해다.
+
+## 내 매장의 진행 중 이벤트 (뷰·프롬프트용 프록시)
+func current_store_event() -> Dictionary:
+	return _local().event
+
+
+## 서버 전용: 매장 이벤트 시작 (일일 스케줄·태운 음식 점화·테스트 공용).
+## 화재는 대상 튀김기의 아이템을 태워 없앤다.
+func server_start_store_event(city_id: String, type: String,
+		station_key: StringName = StringName()) -> void:
+	assert(is_server())
+	var s: LiveStore = live.get(city_id)
+	if s == null or not s.event.is_empty():
+		return
+	var event: Dictionary = {"type": type}
+	if type == "fire":
+		if station_key == StringName():
+			station_key = _pick_fryer_key(s)
+		if station_key == StringName():
+			return
+		event["station"] = String(station_key)
+		event["hits"] = 0
+		var st: StationState = s.stations.get(station_key)
+		if st != null and st.item_iid != 0:
+			event["destroy_iid"] = st.item_iid
+	_apply_store_event.rpc(city_id, event)
+
+
+func _pick_fryer_key(s: LiveStore) -> StringName:
+	var fryers: Array[StringName] = []
+	for key: StringName in s.stations.keys():
+		var st: StationState = s.stations[key]
+		if st.get_def().kind == StationDef.Kind.FRYER:
+			fryers.append(key)
+	if fryers.is_empty():
+		return StringName()
+	return fryers[market_rng.randi_range(0, fryers.size() - 1)]
+
+
+## 서버 전용: 영업 시작 시 매장별 오늘의 이벤트 판정 (사전 경고 없음 슬라이스)
+func _roll_daily_events() -> void:
+	_scheduled_events.clear()
+	for city_id: String in live.keys():
+		var roll: float = market_rng.randf()
+		var type: String = ""
+		if roll < event_fire_chance:
+			type = "fire"
+		elif roll < event_fire_chance + event_blackout_chance:
+			type = "blackout"
+		if type != "":
+			_scheduled_events[city_id] = {"type": type,
+				"at": market_rng.randf_range(0.2, 0.7) * GameClock.service_length}
+
+
+func _tick_scheduled_event(city_id: String, s: LiveStore) -> void:
+	var sched: Dictionary = _scheduled_events.get(city_id, {})
+	if sched.is_empty() or GameClock.service_elapsed < float(sched["at"]):
+		return
+	_scheduled_events.erase(city_id)
+	if s.event.is_empty():
+		server_start_store_event(city_id, String(sched["type"]))
+
+
+## 이벤트 상태 전체 교체 ({} = 해제). 화재 시작 페이로드는 소실 아이템을 포함.
+@rpc("authority", "call_local", "reliable")
+func _apply_store_event(city_id: String, event: Dictionary) -> void:
+	var s: LiveStore = live.get(city_id)
+	if s == null:
+		return
+	var prev_station: String = String(s.event.get("station", ""))
+	s.event = event
+	var destroy_iid: int = int(event.get("destroy_iid", 0))
+	if destroy_iid != 0:
+		items.erase(destroy_iid)
+		var st: StationState = s.stations.get(
+			StringName(String(event.get("station", ""))))
+		if st != null and st.item_iid == destroy_iid:
+			st.item_iid = 0
+			st.work_in_progress = false
+	if city_id == my_city():
+		store_event_changed.emit()
+		if prev_station != "":
+			station_changed.emit(StringName(prev_station))
+		if event.has("station"):
+			station_changed.emit(StringName(String(event["station"])))
 
 
 # ── 도시·다매장 (PLAN.md §6) ────────────────────────────────────────
@@ -1112,6 +1244,7 @@ func _start_service() -> void:
 	SaveService.autosave()  # 영업 시작 전 (§25)
 	for city_id: String in live.keys():
 		(live[city_id] as LiveStore).next_order_in = randf_range(2.0, 5.0)
+	_roll_daily_events()  # 오늘의 매장 이벤트 판정 (§23.1)
 	_apply_service_start.rpc()
 	GameClock.set_phase(GameClock.Phase.SERVICE)
 
@@ -1501,6 +1634,7 @@ func _apply_settlement(summary: Dictionary) -> void:
 		s.station_employee.clear()
 		s.orders.clear()
 		s.ingredient_stock = 0  # 잔여 재료 폐기 (§21.1 과다 주문 위험)
+		s.event = {}  # 마감과 함께 이벤트 해제 (§23.1)
 	for peer: int in inventories.keys():
 		var inv: InventoryState = inventories[peer]
 		for iid: int in inv.all_iids():

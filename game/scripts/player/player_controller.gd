@@ -156,6 +156,14 @@ func _prompt_for(target: Dictionary) -> String:
 	if target_type == InteractionSelector.TargetType.FLOOR_ITEM:
 		return "J: 상호작용"
 	var st: StationState = GameServer.station(target["station_key"])
+	# 매장 이벤트 대응 안내 (§23.3)
+	var event: Dictionary = GameServer.current_store_event()
+	if String(event.get("type", "")) == "fire" \
+			and String(target["station_key"]) == String(event.get("station", "")):
+		return "J: 진압!"
+	if String(event.get("type", "")) == "blackout" and st != null \
+			and st.get_def().kind == StationDef.Kind.FRIDGE:
+		return "J: 차단기 복구"
 	if st == null or st.is_empty():
 		return "J: 상호작용"
 	var def: StationDef = st.get_def()

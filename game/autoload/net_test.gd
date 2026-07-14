@@ -72,6 +72,12 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+	if role == "host":
+		# 무작위 매장 이벤트 차단 — 시나리오 결정성 유지 (store_events는 수동 강제)
+		GameServer.event_fire_chance = 0.0
+		GameServer.event_blackout_chance = 0.0
+		GameServer.event_burnt_fire_chance = 0.0
+
 	match scenario:
 		"simultaneous_pickup":
 			await _scenario_simultaneous_pickup()
@@ -91,6 +97,8 @@ func _run() -> void:
 			await _scenario_multi_store()
 		"independent_stores":
 			await _scenario_independent_stores()
+		"store_events":
+			await _scenario_store_events()
 		"market":
 			await _scenario_market()
 		"dynamic_economy":
@@ -668,6 +676,70 @@ func _scenario_independent_stores() -> void:
 		await _sleep(0.3)
 		_check(GameServer.my_city() == INCHEON, "게스트 인천 복귀")
 		await _teardown()
+
+
+## 매장 이벤트 (§23.1/§23.3, 솔로): 화재(아이템 소실·주문 정지·J 연타 진압),
+## 정전(조리 정지·차단기 복구 후 재개).
+func _scenario_store_events() -> void:
+	const CITY: String = "city.korea.incheon"
+	var near_fryer: Vector2i = Vector2i(9, 2)
+	var near_fridge: Vector2i = Vector2i(18, 2)
+	GameClock.service_length = 60.0
+	GameServer.order_interval_min = 0.1
+	GameServer.order_interval_max = 0.2
+	GameClock.set_phase(GameClock.Phase.SERVICE)
+	_check(GameServer.current_store_event().is_empty(), "초기: 이벤트 없음")
+
+	# ── 화재: 튀김기 아이템 소실 + 주문 정지 + J 연타 진압
+	var iid: int = GameServer.next_iid
+	GameServer.next_iid += 1
+	var item: ItemInstance = ItemInstance.create(iid, &"item.breaded_chicken")
+	GameServer.items[iid] = item
+	var fryer: StationState = GameServer.station(&"f_2")
+	fryer.item_iid = iid
+	fryer.work_in_progress = true
+	GameServer.server_start_store_event(CITY, "fire", &"f_2")
+	await _sleep(0.6)
+	_check(String(GameServer.current_store_event().get("type", "")) == "fire",
+		"화재 시작")
+	_check(GameServer.get_item(iid) == null, "화재로 튀김기 아이템 소실")
+	_check(fryer.item_iid == 0, "튀김기 비워짐")
+	_check(GameServer.orders.active.is_empty(), "화재 중 주문 정지")
+	# 불붙은 설비에 J = 진압 (놓기/집기 대신 인터셉트)
+	GameServer.request_station_interact.rpc_id(1, &"f_2", near_fryer)
+	await _sleep(0.2)
+	_check(String(GameServer.current_store_event().get("type", "")) == "fire"
+		and int(GameServer.current_store_event().get("hits", 0)) == 1,
+		"진압 1회 누적")
+	GameServer.request_station_interact.rpc_id(1, &"f_2", near_fryer)
+	await _sleep(0.2)
+	GameServer.request_station_interact.rpc_id(1, &"f_2", near_fryer)
+	await _sleep(0.3)
+	_check(GameServer.current_store_event().is_empty(), "3회 진압으로 화재 해제")
+	await _sleep(0.6)
+	_check(not GameServer.orders.active.is_empty(), "진압 후 주문 재개")
+
+	# ── 정전: 조리 정지 + 차단기(냉장고 J) 복구 후 재개
+	var iid2: int = GameServer.next_iid
+	GameServer.next_iid += 1
+	var item2: ItemInstance = ItemInstance.create(iid2, &"item.breaded_chicken")
+	GameServer.items[iid2] = item2
+	var fryer1: StationState = GameServer.station(&"f_1")
+	fryer1.item_iid = iid2
+	fryer1.work_in_progress = true
+	GameServer.server_start_store_event(CITY, "blackout")
+	await _sleep(0.6)
+	_check(String(GameServer.current_store_event().get("type", "")) == "blackout",
+		"정전 시작")
+	_check(item2.cook_elapsed == 0.0, "정전: 조리 정지 (실제 %.2f)"
+		% item2.cook_elapsed)
+	GameServer.request_station_interact.rpc_id(1, &"r_1", near_fridge)
+	await _sleep(0.2)
+	_check(GameServer.current_store_event().is_empty(), "차단기 복구로 정전 해제")
+	_check(GameServer.fridge.lock_owner == 0, "복구 시 냉장고 UI 미개방")
+	await _sleep(0.6)
+	_check(item2.cook_elapsed > 0.0, "복구 후 조리 재개")
+	_finish(_all_passed(), "")
 
 
 ## 시장 정보 (§7, 솔로): 구매 → 업그레이드 할인 → 사기(전액 손실·기존 정보 유지).

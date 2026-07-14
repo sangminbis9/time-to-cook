@@ -16,6 +16,10 @@ var ingredient_stock: int = 40
 var revenue_today: int = 0
 ## 주문 스포너 잔여 시간 (서버 전용 런타임)
 var next_order_in: float = 0.0
+## 진행 중인 매장 이벤트 (§23.1). {} = 없음.
+## 화재: {"type": "fire", "station": String, "hits": int, ["destroy_iid": int]}
+## 정전: {"type": "blackout"}
+var event: Dictionary = {}
 
 
 ## 레이아웃 템플릿에서 새 매장 구축 (모든 매장 동일 레이아웃 — 슬라이스 단순화)
@@ -49,6 +53,7 @@ func to_dict() -> Dictionary:
 		"stock": ingredient_stock,
 		"orders": orders.to_dict(),
 		"revenue_today": revenue_today,
+		"event": event.duplicate(true),
 	}
 
 
@@ -72,6 +77,7 @@ static func from_dict(data: Dictionary, layout: StoreLayout) -> LiveStore:
 	if data.has("orders"):
 		store.orders = OrderBook.from_dict(data["orders"])
 	store.revenue_today = int(data.get("revenue_today", 0))
+	store.event = data.get("event", {})
 	return store
 
 

@@ -40,6 +40,7 @@ func setup(key: StringName, def: StationDef, tile: Vector2i) -> void:
 	GameServer.station_changed.connect(_on_station_changed)
 	GameServer.item_updated.connect(func(_iid: int) -> void: _refresh())
 	GameServer.snapshot_applied.connect(_refresh)
+	GameServer.store_event_changed.connect(_refresh)
 	_refresh()
 
 
@@ -65,8 +66,10 @@ func _process(delta: float) -> void:
 				# 새 아이템 — 보간 시계 재시작 (재투입 시 이어짐 포함)
 				_render_iid = st.item_iid
 				_render_elapsed = item.cook_elapsed
-			elif GameClock.phase == GameClock.Phase.SERVICE:
-				# 서버 동기화 값이 더 크면 스냅, 아니면 로컬 진행
+			elif GameClock.phase == GameClock.Phase.SERVICE \
+					and String(GameServer.current_store_event().get(
+						"type", "")) != "blackout":
+				# 서버 동기화 값이 더 크면 스냅, 아니면 로컬 진행 (정전 중 정지)
 				_render_elapsed = maxf(_render_elapsed + delta, item.cook_elapsed)
 	else:
 		_render_iid = 0
@@ -74,6 +77,11 @@ func _process(delta: float) -> void:
 
 
 func _refresh() -> void:
+	# 화재 설비는 붉게 표시 (§23.1)
+	var event: Dictionary = GameServer.current_store_event()
+	var on_fire: bool = String(event.get("type", "")) == "fire" \
+		and String(event.get("station", "")) == String(station_key)
+	_sprite.modulate = Color(1.7, 0.65, 0.45) if on_fire else Color.WHITE
 	var st: StationState = GameServer.station(station_key)
 	if st == null or st.is_empty():
 		_item_sprite.visible = false

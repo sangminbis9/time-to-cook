@@ -17,6 +17,7 @@ const FAIL_MESSAGES: Dictionary = {
 	"not_enough_money": "자금이 부족합니다",
 	"loan_active": "이미 대출이 있습니다",
 	"market_scammed": "정보상에게 사기를 당했습니다!",
+	"station_on_fire": "불이 붙었습니다! J로 진압하세요",
 }
 const TOAST_SECONDS: float = 2.0
 
@@ -37,6 +38,7 @@ func _ready() -> void:
 	_build_status()
 	_build_orders_panel()
 	_build_phase_hint()
+	_build_event_banner()
 	_build_settlement_panel()
 	_build_hire_button()
 	GameServer.employee_changed.connect(func(_eid: int) -> void: _refresh_hire())
@@ -49,6 +51,7 @@ func _ready() -> void:
 	GameServer.day_settled.connect(_on_day_settled)
 	GameClock.phase_changed.connect(_on_phase_changed)
 	GameServer.fridge_lock_changed.connect(_on_fridge_lock_changed)
+	GameServer.store_event_changed.connect(_refresh_event_banner)
 	_refresh_all()
 
 
@@ -66,6 +69,7 @@ func _refresh_all() -> void:
 	_refresh_orders()
 	_refresh_phase_hint()
 	_refresh_status()
+	_refresh_event_banner()
 
 
 func _local_peer() -> int:
@@ -218,6 +222,45 @@ func _refresh_phase_hint() -> void:
 
 func _connected_count() -> int:
 	return 1 + multiplayer.get_peers().size()
+
+
+## 매장 이벤트 배너 (§23.1 — 진행 중 내내 표시)
+var _event_banner: Label
+
+
+func _build_event_banner() -> void:
+	_event_banner = Label.new()
+	_event_banner.name = "EventBanner"
+	_event_banner.anchor_left = 0.5
+	_event_banner.anchor_right = 0.5
+	_event_banner.offset_left = -160.0
+	_event_banner.offset_right = 160.0
+	_event_banner.offset_top = 22.0
+	_event_banner.offset_bottom = 38.0
+	_event_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_event_banner.add_theme_font_size_override("font_size", 11)
+	_event_banner.add_theme_color_override("font_color", Color(0.9, 0.3, 0.2))
+	_event_banner.add_theme_color_override(
+		"font_outline_color", Color(0.97, 0.94, 0.85))
+	_event_banner.add_theme_constant_override("outline_size", 2)
+	_event_banner.visible = false
+	add_child(_event_banner)
+
+
+func _refresh_event_banner() -> void:
+	if _event_banner == null:
+		return
+	var event: Dictionary = GameServer.current_store_event()
+	match String(event.get("type", "")):
+		"fire":
+			_event_banner.text = "⚠ 화재 발생! 불붙은 튀김기에 J 연타 (%d/%d)" % [
+				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
+			_event_banner.visible = true
+		"blackout":
+			_event_banner.text = "⚠ 정전! 냉장고 옆 차단기를 J로 복구하세요"
+			_event_banner.visible = true
+		_:
+			_event_banner.visible = false
 
 
 func _build_settlement_panel() -> void:

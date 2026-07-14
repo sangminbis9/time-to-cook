@@ -8,6 +8,8 @@ const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
 var layout: StoreLayout
 ## 로컬 플레이어가 마지막으로 본 도시 — 바뀌면 스폰 위치로 재배치 (독립 이동 §6)
 var _seen_city: String = ""
+## 정전(§23.1) 화면 어둡게 처리용
+var _dimmer: CanvasModulate
 
 @onready var _floor: TileMapLayer = $Floor
 @onready var _walls: TileMapLayer = $Walls
@@ -21,9 +23,14 @@ func _ready() -> void:
 	_seen_city = GameServer.my_city()
 	_build_tiles()
 	_build_stations()
+	_dimmer = CanvasModulate.new()
+	_dimmer.color = Color.WHITE
+	add_child(_dimmer)
 	GameServer.employee_changed.connect(_on_employee_changed)
 	GameServer.snapshot_applied.connect(_sync_employee_views)
 	GameServer.snapshot_applied.connect(_on_world_resync)
+	GameServer.store_event_changed.connect(_refresh_event_fx)
+	GameServer.snapshot_applied.connect(_refresh_event_fx)
 	GameServer.peer_city_changed.connect(
 		func(_peer: int) -> void: _refresh_player_visibility())
 	_players.child_entered_tree.connect(
@@ -138,3 +145,10 @@ func _refresh_player_visibility() -> void:
 	for child: Node in _players.get_children():
 		(child as Node2D).visible = \
 			GameServer.city_of_peer(int(String(child.name))) == mine
+
+
+## 정전이면 화면을 어둡게 (HUD는 CanvasLayer라 영향 없음)
+func _refresh_event_fx() -> void:
+	var blackout: bool = String(GameServer.current_store_event().get(
+		"type", "")) == "blackout"
+	_dimmer.color = Color(0.4, 0.4, 0.55) if blackout else Color.WHITE
