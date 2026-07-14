@@ -89,8 +89,13 @@ func _make_row(city: CityDef) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	var city_id: String = String(city.id)
-	var active: bool = city_id == FranchiseState.active_city
-	var opened: bool = FranchiseState.is_store_open(city_id)
+	var active: bool = city_id == GameServer.my_city()
+	var opened: bool = GameServer.store_is_open(city_id)
+	var partner_here: bool = false
+	for peer: int in GameServer.peer_city.keys():
+		if peer != multiplayer.get_unique_id() \
+				and String(GameServer.peer_city[peer]) == city_id:
+			partner_here = true
 
 	var info: Label = Label.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -104,6 +109,8 @@ func _make_row(city: CityDef) -> HBoxContainer:
 	else:
 		info.text = "%s  개설 %d원 · 임대료 %d/일" % [
 			city.display_name_ko, city.entry_cost, city.rent_per_day]
+	if partner_here:
+		info.text += "  [동료]"
 	# 경제 이벤트는 공개 정보 (§7.1) — 시장 조사 없이 표시
 	var event: Dictionary = FranchiseState.city_events.get(city_id, {})
 	if not event.is_empty():
@@ -128,7 +135,7 @@ func _make_row(city: CityDef) -> HBoxContainer:
 		if opened:
 			button.text = "이동"
 			button.pressed.connect(func() -> void:
-				GameServer.request_switch_store.rpc_id(1, city_id))
+				GameServer.request_travel.rpc_id(1, city_id))
 		else:
 			button.text = "개설"
 			button.disabled = FranchiseState.money < city.entry_cost

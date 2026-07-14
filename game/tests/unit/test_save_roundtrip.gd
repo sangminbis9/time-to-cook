@@ -64,6 +64,36 @@ func test_write_read_identical() -> void:
 	assert_eq(item.cuts_done, 2)
 
 
+## v2(단일 활성 매장, 최상위 평면 필드) → v3(stores/peer_city) 마이그레이션
+func test_migrate_v2_to_v3() -> void:
+	var v2: Dictionary = {
+		"version": 2,
+		"next_iid": 5,
+		"grid": {"floor_items": {"1,1": 3}},
+		"stations": {},
+		"fridge": {"def_id": "fridge.small", "slots": [7, 0, 0]},
+		"employees": {},
+		"ingredient_stock": 12,
+		"orders": {"active": [], "next_oid": 4, "max_active": 4},
+		"franchise": {"money": 1000, "active_city": "city.korea.busan"},
+	}
+	DirAccess.make_dir_recursive_absolute(SaveService.SAVE_DIR)
+	var file: FileAccess = FileAccess.open(
+		SaveService.save_path(TEST_SLOT), FileAccess.WRITE)
+	file.store_string(JSON.stringify(v2))
+	file.close()
+	var loaded: Dictionary = SaveService.read_save(TEST_SLOT)
+	assert_true(loaded.has("stores"), "stores로 감싸짐")
+	var store: Dictionary = (loaded["stores"] as Dictionary).get(
+		"city.korea.busan", {})
+	assert_eq(int(store.get("stock", 0)), 12)
+	assert_eq(int(((store.get("fridge", {}) as Dictionary).get(
+		"slots", []) as Array)[0]), 7)
+	var pc: Dictionary = loaded.get("peer_city", {})
+	assert_eq(String(pc.get("1", "")), "city.korea.busan")
+	assert_eq(String(pc.get("2", "")), "city.korea.busan")
+
+
 func test_missing_save_returns_empty() -> void:
 	assert_true(SaveService.read_save(98).is_empty())
 

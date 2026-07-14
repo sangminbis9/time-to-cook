@@ -7,7 +7,7 @@ func test_gut_pipeline_alive() -> void:
 
 
 func test_save_version_constant() -> void:
-	assert_eq(SaveService.SAVE_VERSION, 2)
+	assert_eq(SaveService.SAVE_VERSION, 3)
 
 
 func test_defs_registry_loaded() -> void:

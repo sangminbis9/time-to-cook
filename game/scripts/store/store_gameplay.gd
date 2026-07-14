@@ -6,6 +6,8 @@ const TILE: int = 32
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
 
 var layout: StoreLayout
+## 로컬 플레이어가 마지막으로 본 도시 — 바뀌면 스폰 위치로 재배치 (독립 이동 §6)
+var _seen_city: String = ""
 
 @onready var _floor: TileMapLayer = $Floor
 @onready var _walls: TileMapLayer = $Walls
@@ -16,10 +18,16 @@ var layout: StoreLayout
 func _ready() -> void:
 	layout = StoreLayout.incheon()
 	GameServer.setup_store(layout)
+	_seen_city = GameServer.my_city()
 	_build_tiles()
 	_build_stations()
 	GameServer.employee_changed.connect(_on_employee_changed)
 	GameServer.snapshot_applied.connect(_sync_employee_views)
+	GameServer.snapshot_applied.connect(_on_world_resync)
+	GameServer.peer_city_changed.connect(
+		func(_peer: int) -> void: _refresh_player_visibility())
+	_players.child_entered_tree.connect(
+		func(_node: Node) -> void: _refresh_player_visibility.call_deferred())
 	_sync_employee_views()
 	if multiplayer.is_server():
 		if SceneRouter.pending_load_slot > 0:
@@ -101,7 +109,32 @@ func _spawn_player(peer_id: int) -> void:
 		return
 	var player: PlayerController = PLAYER_SCENE.instantiate() as PlayerController
 	player.name = str(peer_id)
+	player.position = _spawn_pos(peer_id)
+	_players.add_child(player, true)
+	_refresh_player_visibility()
+
+
+func _spawn_pos(peer_id: int) -> Vector2:
 	var order: int = 1 if peer_id == 1 else 2
 	var spawn_tile: Vector2i = layout.spawn_tiles.get(order, Vector2i(9, 4))
-	player.position = Vector2(spawn_tile * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
-	_players.add_child(player, true)
+	return Vector2(spawn_tile * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
+
+
+## 매장 이동(독립 이동) 반영: 내 도시가 바뀌면 스폰 위치로, 다른 도시의
+## 플레이어는 숨긴다 (같은 씬 노드를 공유하되 각자 자기 매장만 그린다).
+func _on_world_resync() -> void:
+	var mine: String = GameServer.my_city()
+	if mine != _seen_city:
+		_seen_city = mine
+		var me: Node2D = _players.get_node_or_null(
+			str(multiplayer.get_unique_id())) as Node2D
+		if me != null:
+			me.position = _spawn_pos(multiplayer.get_unique_id())
+	_refresh_player_visibility()
+
+
+func _refresh_player_visibility() -> void:
+	var mine: String = GameServer.my_city()
+	for child: Node in _players.get_children():
+		(child as Node2D).visible = \
+			GameServer.city_of_peer(int(String(child.name))) == mine

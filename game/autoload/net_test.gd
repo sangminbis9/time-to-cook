@@ -89,6 +89,8 @@ func _run() -> void:
 			await _scenario_economy()
 		"multi_store":
 			await _scenario_multi_store()
+		"independent_stores":
+			await _scenario_independent_stores()
 		"market":
 			await _scenario_market()
 		"dynamic_economy":
@@ -142,7 +144,8 @@ func _scenario_simultaneous_pickup() -> void:
 	var tile: Vector2i = Vector2i(9, 4)
 	if role == "host":
 		await _wait_until(func() -> bool: return _guest_ready)
-		var iid: int = GameServer.server_spawn_floor_item(&"item.raw_chicken", tile)
+		var iid: int = GameServer.server_spawn_floor_item(
+			GameServer.my_city(), &"item.raw_chicken", tile)
 		_check(iid != 0, "아이템 스폰 성공")
 		await _sleep(0.2)
 		t_go.rpc({"tile_x": tile.x, "tile_y": tile.y, "iid": iid})
@@ -189,10 +192,10 @@ func _scenario_coop_cook_submit() -> void:
 		# 자동 주문 스포너 격리 — 이 시나리오는 수동 주문 1건만 검증
 		GameServer.order_interval_min = 9999.0
 		GameServer.order_interval_max = 9999.0
-		GameServer._next_order_in = 9999.0
+		(GameServer.live[GameServer.my_city()] as LiveStore).next_order_in = 9999.0
 		GameClock.set_phase(GameClock.Phase.SERVICE)
 		var order: Dictionary = GameServer.server_spawn_order(
-			&"recipe.fried_dakgangjeong")
+			GameServer.my_city(), &"recipe.fried_dakgangjeong")
 		_check(not order.is_empty(), "주문 생성")
 		t_step.rpc("guest_cook")
 		await _wait_until(func() -> bool: return _steps_done.has("guest_cook"))
@@ -558,9 +561,9 @@ func _scenario_multi_store() -> void:
 	await _sleep(0.2)
 	_check(FranchiseState.money == 115000, "부산 개설비 차감 (실제 %d)"
 		% FranchiseState.money)
-	GameServer.request_switch_store.rpc_id(1, "city.korea.busan")
+	GameServer.request_travel.rpc_id(1, "city.korea.busan")
 	await _sleep(0.3)
-	_check(FranchiseState.active_city == "city.korea.busan", "부산으로 이동")
+	_check(GameServer.my_city() == "city.korea.busan", "부산으로 이동")
 	_check(GameServer.fridge.slots[0] == 0, "부산 냉장고는 비어 있음 (상태 분리)")
 	_check(GameServer.employees.is_empty(), "부산에 직원 없음 (상태 분리)")
 	_check(GameServer.ingredient_stock == 0, "부산 신규 매장 재고 0")
@@ -576,13 +579,95 @@ func _scenario_multi_store() -> void:
 	GameServer.request_ready_toggle.rpc_id(1)
 	await _wait_until(func() -> bool:
 		return GameClock.phase == GameClock.Phase.PREP)
-	GameServer.request_switch_store.rpc_id(1, "city.korea.incheon")
+	GameServer.request_travel.rpc_id(1, "city.korea.incheon")
 	await _sleep(0.3)
-	_check(FranchiseState.active_city == "city.korea.incheon", "인천 복귀")
+	_check(GameServer.my_city() == "city.korea.incheon", "인천 복귀")
 	_check(GameServer.fridge.slots[0] == incheon_fridge_iid,
 		"인천 냉장고 아이템 복원")
 	_check(GameServer.employees.size() == 1, "인천 직원 복원")
 	_finish(_all_passed(), "")
+
+
+## 독립 매장 이동 (§6, 2인): 게스트만 부산으로 이동 → 두 매장 동시 라이브·
+## 상태 격리(주문·바닥 아이템) → 정산은 양쪽 임대료 합산 → 복귀 시 재합류.
+func _scenario_independent_stores() -> void:
+	const BUSAN: String = "city.korea.busan"
+	const INCHEON: String = "city.korea.incheon"
+	if role == "host":
+		await _wait_until(func() -> bool: return _guest_ready)
+		var guest: int = multiplayer.get_peers()[0]
+		FranchiseState.set_money(200000)
+		GameClock.service_length = 3.0
+		GameServer.request_open_store.rpc_id(1, BUSAN)
+		await _sleep(0.2)
+		_check(FranchiseState.money == 120000, "부산 개설비 차감 (실제 %d)"
+			% FranchiseState.money)
+		# 게스트만 부산으로 — 호스트는 인천에 남는다
+		t_step.rpc("travel")
+		await _wait_until(func() -> bool:
+			return GameServer.city_of_peer(guest) == BUSAN)
+		_check(GameServer.my_city() == INCHEON, "호스트는 인천 유지")
+		_check(GameServer.live.size() == 2, "라이브 매장 2개 (실제 %d)"
+			% GameServer.live.size())
+		_check(not FranchiseState.stores.has(BUSAN), "부산은 오프라인 번들에서 빠짐")
+		# 매장 상태 격리: 인천 바닥 아이템·부산 주문이 서로 새지 않아야 한다
+		var iid: int = GameServer.server_spawn_floor_item(
+			INCHEON, &"item.raw_chicken", Vector2i(9, 4))
+		_check(iid != 0, "인천 바닥 아이템 스폰")
+		var order: Dictionary = GameServer.server_spawn_order(
+			BUSAN, &"recipe.fried_dakgangjeong")
+		_check(not order.is_empty(), "부산 주문 생성")
+		await _sleep(0.3)
+		_check(GameServer.orders.active.is_empty(), "호스트(인천) 주문 목록 비어 있음")
+		_check(GameServer.grid.item_at(Vector2i(9, 4)) == iid, "인천 바닥 아이템 존재")
+		t_step.rpc("verify_busan")
+		await _wait_until(func() -> bool: return _steps_done.has("verify_busan"))
+		# 하루 진행: 두 매장 모두 라이브 → 자동화 매출 없음, 임대료는 양쪽 합산
+		t_step.rpc("ready_day")
+		GameServer.request_ready_toggle.rpc_id(1)
+		await _wait_until(func() -> bool:
+			return GameClock.phase == GameClock.Phase.SETTLEMENT)
+		# 120000 - 임대료(인천 2000 + 부산 3000)
+		_check(FranchiseState.money == 115000,
+			"정산: 양쪽 임대료 합산 (실제 %d)" % FranchiseState.money)
+		t_step.rpc("next_day")
+		GameServer.request_ready_toggle.rpc_id(1)
+		await _wait_until(func() -> bool:
+			return GameClock.phase == GameClock.Phase.PREP)
+		# 게스트 복귀 → 부산은 오프라인 번들로
+		t_step.rpc("come_back")
+		await _wait_until(func() -> bool:
+			return GameServer.city_of_peer(guest) == INCHEON)
+		_check(GameServer.live.size() == 1, "라이브 매장 1개로 복귀")
+		_check(FranchiseState.stores.has(BUSAN), "부산 오프라인 번들 보관")
+		t_step.rpc("verify_home")
+		await _teardown()
+	else:
+		await _wait_until(func() -> bool:
+			return GameServer.inventory_of(multiplayer.get_unique_id()) != null)
+		t_guest_ready.rpc_id(1)
+		await _wait_until(func() -> bool: return _step == "travel")
+		GameServer.request_travel.rpc_id(1, BUSAN)
+		await _wait_until(func() -> bool: return GameServer.my_city() == BUSAN)
+		await _wait_until(func() -> bool: return _step == "verify_busan")
+		await _sleep(0.3)
+		_check(GameServer.orders.active.size() == 1, "게스트(부산) 주문 1건 보임")
+		_check(GameServer.grid.floor_items.is_empty(),
+			"게스트(부산) 바닥은 비어 있음 (인천 아이템 미노출)")
+		_check(GameServer.fridge.slots[0] == 0, "부산 신규 매장 냉장고 비어 있음")
+		_check(GameServer.ingredient_stock == 0, "부산 신규 매장 재고 0")
+		t_step_done.rpc("verify_busan")
+		await _wait_until(func() -> bool: return _step == "ready_day")
+		GameServer.request_ready_toggle.rpc_id(1)
+		await _wait_until(func() -> bool: return _step == "next_day")
+		GameServer.request_ready_toggle.rpc_id(1)
+		await _wait_until(func() -> bool: return _step == "come_back")
+		GameServer.request_travel.rpc_id(1, INCHEON)
+		await _wait_until(func() -> bool: return GameServer.my_city() == INCHEON)
+		await _wait_until(func() -> bool: return _step == "verify_home")
+		await _sleep(0.3)
+		_check(GameServer.my_city() == INCHEON, "게스트 인천 복귀")
+		await _teardown()
 
 
 ## 시장 정보 (§7, 솔로): 구매 → 업그레이드 할인 → 사기(전액 손실·기존 정보 유지).

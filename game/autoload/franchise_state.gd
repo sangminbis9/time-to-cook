@@ -16,12 +16,10 @@ var menu_prices: Dictionary = {}
 var loan_principal: int = 0
 var loan_daily_rate: float = 0.02
 
-## 개설된 매장들 (§6): city_id(String) → 매장 번들
-## {items, grid, stations, fridge, employees, next stock 등 — GameServer가 관리}
-## 활성 매장의 번들은 전환·저장 시점에만 갱신된다.
+## 오프라인 매장 번들 (§6): city_id(String) → 매장 번들
+## {items, grid, stations, fridge, employees, stock 등 — GameServer가 관리}
+## 플레이어가 있는 매장은 GameServer.live가 원본이며 여기서 빠진다.
 var stores: Dictionary = {}
-## 현재 플레이어들이 있는 매장의 도시 ID
-var active_city: String = "city.korea.incheon"
 
 ## 시장 정보 (§7.5): city_id(String) → 최근 성공 보고서 스냅샷
 var market_info: Dictionary = {}
@@ -53,10 +51,6 @@ func daily_interest() -> int:
 	return ceili(loan_principal * loan_daily_rate)
 
 
-func is_store_open(city_id: String) -> bool:
-	return stores.has(city_id) or city_id == active_city
-
-
 func to_dict() -> Dictionary:
 	return {
 		"money": money,
@@ -64,7 +58,6 @@ func to_dict() -> Dictionary:
 		"loan_principal": loan_principal,
 		"loan_daily_rate": loan_daily_rate,
 		"stores": stores.duplicate(true),
-		"active_city": active_city,
 		"market_info": market_info.duplicate(true),
 		"city_econ": city_econ.duplicate(),
 		"city_events": city_events.duplicate(true),
@@ -76,7 +69,6 @@ func from_dict(data: Dictionary) -> void:
 	loan_principal = int(data.get("loan_principal", 0))
 	loan_daily_rate = float(data.get("loan_daily_rate", 0.02))
 	stores = data.get("stores", {})
-	active_city = String(data.get("active_city", "city.korea.incheon"))
 	market_info = data.get("market_info", {})
 	city_econ = data.get("city_econ", {})
 	city_events = data.get("city_events", {})

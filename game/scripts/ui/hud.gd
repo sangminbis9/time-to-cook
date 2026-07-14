@@ -142,8 +142,10 @@ func _refresh_status() -> void:
 		GameClock.Phase.SERVICE: "영업 중",
 		GameClock.Phase.SETTLEMENT: "정산",
 	}
-	var text: String = "%d일차  %s  %d원" % [
-		GameClock.day, phase_names[GameClock.phase], FranchiseState.money]
+	var city: CityDef = Defs.get_def(StringName(GameServer.my_city())) as CityDef
+	var text: String = "%d일차  %s  %s  %d원" % [
+		GameClock.day, city.display_name_ko if city != null else "",
+		phase_names[GameClock.phase], FranchiseState.money]
 	if GameClock.phase == GameClock.Phase.SERVICE:
 		var remaining: int = maxi(0, ceili(GameClock.service_length
 			- GameClock.service_elapsed))
@@ -302,6 +304,8 @@ func _build_hire_button() -> void:
 		if get_tree().get_first_node_in_group("modal_ui") == null:
 			add_child(CityMapUi.new()))
 	GameServer.market_info_changed.connect(_refresh_hire)
+	# 채용 후보 풀은 전 매장 공유 — 동료의 채용(후보 갱신)도 반영
+	GameServer.ready_state_changed.connect(_refresh_hire)
 	_refresh_hire()
 
 
