@@ -95,6 +95,14 @@ func _build_inventory_bar() -> void:
 		slot.texture = SLOT_TEXTURE
 		slot.custom_minimum_size = Vector2(40, 40)
 		slot.stretch_mode = TextureRect.STRETCH_SCALE
+		# 냉장고가 열려 있으면 바 클릭이 곧 인벤토리 쪽 상호작용 (§17.6)
+		slot.mouse_filter = Control.MOUSE_FILTER_STOP
+		var idx: int = i
+		slot.gui_input.connect(func(event: InputEvent) -> void:
+			var click: InputEventMouseButton = event as InputEventMouseButton
+			if click != null and click.pressed \
+					and click.button_index == MOUSE_BUTTON_LEFT:
+				_on_bar_slot_clicked(idx))
 		bar.add_child(slot)
 		var icon: TextureRect = TextureRect.new()
 		icon.position = Vector2(4, 4)
@@ -365,13 +373,19 @@ func _on_inventory_changed(peer_id: int) -> void:
 
 
 func _refresh_slots() -> void:
+	if not is_inside_tree():
+		return  # 냉장고 UI의 tree_exited가 씬 해체 중에도 올 수 있다
 	var inv: InventoryState = GameServer.inventory_of(_local_peer())
 	if inv == null:
 		return
+	var fridge_ui: FridgeUi = _open_fridge_ui()
 	for i in range(InventoryState.SLOT_COUNT):
 		var locked: bool = i >= inv.unlocked
-		_slot_rects[i].modulate = Color(0.55, 0.5, 0.45) if locked else (
+		var tint: Color = Color(0.55, 0.5, 0.45) if locked else (
 			Color(1.35, 1.25, 0.9) if i == inv.selected else Color.WHITE)
+		if fridge_ui != null and fridge_ui.cursor_inv_slot() == i:
+			tint.a = 0.5  # 냉장고 커서에 들려 있는 원본 슬롯
+		_slot_rects[i].modulate = tint
 		var iid: int = inv.slots[i]
 		if iid != 0 and GameServer.get_item(iid) != null:
 			_item_icons[i].texture = GameServer.get_item(iid).get_def().texture
@@ -380,13 +394,27 @@ func _refresh_slots() -> void:
 			_item_icons[i].visible = false
 
 
+func _open_fridge_ui() -> FridgeUi:
+	return get_tree().get_first_node_in_group("fridge_ui") as FridgeUi
+
+
+## 하단 바 클릭: 냉장고가 열려 있을 때만 의미가 있다 (§17.6)
+func _on_bar_slot_clicked(slot: int) -> void:
+	var fridge_ui: FridgeUi = _open_fridge_ui()
+	if fridge_ui != null:
+		fridge_ui.on_inventory_slot_clicked(slot)
+
+
 ## 냉장고 사용권을 얻은 로컬 플레이어에게 UI를 연다 (§17.4)
 func _on_fridge_lock_changed(owner_peer: int) -> void:
 	if owner_peer != _local_peer():
 		return
 	if get_tree().get_first_node_in_group("modal_ui") != null:
 		return
-	add_child(FridgeUi.new())
+	var ui: FridgeUi = FridgeUi.new()
+	ui.cursor_changed.connect(_refresh_slots)
+	ui.tree_exited.connect(_refresh_slots)
+	add_child(ui)
 
 
 func _on_fail(msg_key: String) -> void:

@@ -115,6 +115,11 @@ func _run() -> void:
 			await _scenario_save_load()
 		"screenshot":
 			await _scenario_screenshot()
+		"screenshot_fridge":
+			# 냉장고 UI가 열린 화면 검수용
+			GameServer.request_station_interact.rpc_id(1, &"r_1", Vector2i(12, 2))
+			await _sleep(0.3)
+			await _scenario_screenshot()
 		_:
 			_finish(false, "알 수 없는 시나리오: %s" % scenario)
 
