@@ -22,6 +22,12 @@ func _on_placed(tile: Vector2i, iid: int) -> void:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.texture = item.get_def().texture
 	sprite.position = Vector2(tile * TILE) + Vector2(TILE / 2.0, TILE / 2.0 + 6.0)
+	var shadow: Sprite2D = Sprite2D.new()
+	shadow.texture = load("res://assets/sprites/fx/shadow_oval.png")
+	shadow.position = Vector2(0, 7)
+	shadow.scale = Vector2(0.6, 0.5)
+	shadow.show_behind_parent = true
+	sprite.add_child(shadow)
 	add_child(sprite)
 	_sprites[tile] = sprite
 

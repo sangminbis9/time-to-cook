@@ -8,8 +8,12 @@ const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
 var layout: StoreLayout
 ## 로컬 플레이어가 마지막으로 본 도시 — 바뀌면 스폰 위치로 재배치 (독립 이동 §6)
 var _seen_city: String = ""
-## 정전(§23.1) 화면 어둡게 처리용
+## 정전(§23.1) 화면 어둡게 처리용 겸 기본 앰비언트
 var _dimmer: CanvasModulate
+## 평상시 앰비언트 — 살짝 낮춰 조명(PointLight2D)이 온기를 만들 여지를 준다
+const AMBIENT: Color = Color(0.82, 0.79, 0.76)
+## 천장 조명 (정전 시 소등)
+var _lights: Array[PointLight2D] = []
 
 @onready var _floor: TileMapLayer = $Floor
 @onready var _walls: TileMapLayer = $Walls
@@ -26,8 +30,10 @@ func _ready() -> void:
 	_sync_station_views()
 	_build_edit_mode()
 	_dimmer = CanvasModulate.new()
-	_dimmer.color = Color.WHITE
+	_dimmer.color = AMBIENT
 	add_child(_dimmer)
+	_build_lights()
+	_build_vignette()
 	GameServer.station_layout_changed.connect(_sync_station_views)
 	GameServer.snapshot_applied.connect(_sync_station_views)
 	GameServer.employee_changed.connect(_on_employee_changed)
@@ -156,11 +162,49 @@ func _refresh_player_visibility() -> void:
 			GameServer.city_of_peer(int(String(child.name))) == mine
 
 
-## 정전이면 화면을 어둡게 (HUD는 CanvasLayer라 영향 없음)
+## 천장 조명 — 매장 폭을 따라 따뜻한 광원을 고르게 배치
+func _build_lights() -> void:
+	var map_size: Vector2 = Vector2(layout.width, layout.height) * TILE
+	var light_tex: Texture2D = load("res://assets/sprites/fx/light_radial.png")
+	var spots: Array[Vector2] = [
+		Vector2(map_size.x * 0.2, map_size.y * 0.3),
+		Vector2(map_size.x * 0.5, map_size.y * 0.28),
+		Vector2(map_size.x * 0.8, map_size.y * 0.3),
+		Vector2(map_size.x * 0.32, map_size.y * 0.72),
+		Vector2(map_size.x * 0.68, map_size.y * 0.72),
+	]
+	for spot: Vector2 in spots:
+		var light: PointLight2D = PointLight2D.new()
+		light.texture = light_tex
+		light.color = Color(1.0, 0.92, 0.76)
+		light.energy = 0.45
+		light.texture_scale = 1.3
+		light.position = spot
+		add_child(light)
+		_lights.append(light)
+
+
+## 화면 가장자리를 살짝 어둡게 — HUD(레이어 1)보다 아래에 그린다
+func _build_vignette() -> void:
+	var vignette_layer: CanvasLayer = CanvasLayer.new()
+	vignette_layer.layer = 0
+	add_child(vignette_layer)
+	var rect: TextureRect = TextureRect.new()
+	rect.texture = load("res://assets/sprites/fx/vignette.png")
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.anchor_right = 1.0
+	rect.anchor_bottom = 1.0
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vignette_layer.add_child(rect)
+
+
+## 정전이면 화면을 어둡게 + 조명 소등 (HUD는 CanvasLayer라 영향 없음)
 func _refresh_event_fx() -> void:
 	var blackout: bool = String(GameServer.current_store_event().get(
 		"type", "")) == "blackout"
-	_dimmer.color = Color(0.4, 0.4, 0.55) if blackout else Color.WHITE
+	_dimmer.color = Color(0.4, 0.4, 0.55) if blackout else AMBIENT
+	for light: PointLight2D in _lights:
+		light.enabled = not blackout
 
 
 # ── 설비 배치 모드 (§15 — 준비 단계, 매장 관리 UI에서 진입) ─────────

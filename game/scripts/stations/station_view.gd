@@ -11,6 +11,7 @@ var _def: StationDef
 var _sprite: Sprite2D
 var _item_sprite: Sprite2D
 var _progress: TextureProgressBar
+var _glow: PointLight2D
 
 
 func setup(key: StringName, def: StationDef, tile: Vector2i) -> void:
@@ -18,9 +19,25 @@ func setup(key: StringName, def: StationDef, tile: Vector2i) -> void:
 	_def = def
 	position = Vector2(tile * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
 
+	var shadow: Sprite2D = Sprite2D.new()
+	shadow.texture = load("res://assets/sprites/fx/shadow_oval.png")
+	shadow.position = Vector2(0, 15)
+	shadow.scale = Vector2(1.5, 1.1)
+	add_child(shadow)
+
 	_sprite = Sprite2D.new()
 	_sprite.texture = def.texture
 	add_child(_sprite)
+
+	if def.kind == StationDef.Kind.FRYER:
+		# 조리 설비의 은은한 온기 (정전 시 소등)
+		_glow = PointLight2D.new()
+		_glow.texture = load("res://assets/sprites/fx/light_radial.png")
+		_glow.color = Color(1.0, 0.78, 0.5)
+		_glow.energy = 0.5
+		_glow.texture_scale = 0.35
+		_glow.position = Vector2(0, -4)
+		add_child(_glow)
 
 	_item_sprite = Sprite2D.new()
 	_item_sprite.position = Vector2(0, -6)
@@ -82,6 +99,8 @@ func _refresh() -> void:
 	var on_fire: bool = String(event.get("type", "")) == "fire" \
 		and String(event.get("station", "")) == String(station_key)
 	_sprite.modulate = Color(1.7, 0.65, 0.45) if on_fire else Color.WHITE
+	if _glow != null:
+		_glow.enabled = String(event.get("type", "")) != "blackout"
 	var st: StationState = GameServer.station(station_key)
 	if st == null or st.is_empty():
 		_item_sprite.visible = false

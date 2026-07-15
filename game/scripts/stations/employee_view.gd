@@ -16,6 +16,11 @@ var _last_to: Vector2i
 
 func setup(p_eid: int) -> void:
 	eid = p_eid
+	var shadow: Sprite2D = Sprite2D.new()
+	shadow.texture = load("res://assets/sprites/fx/shadow_oval.png")
+	shadow.position = Vector2(0, 15)
+	shadow.scale = Vector2(1.2, 0.9)
+	add_child(shadow)
 	_sprite = Sprite2D.new()
 	_sprite.texture = load("res://assets/sprites/player_mint.png")
 	_sprite.hframes = 8
