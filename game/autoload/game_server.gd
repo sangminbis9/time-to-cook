@@ -27,6 +27,8 @@ signal day_settled(summary: Dictionary)
 signal fridge_changed
 signal fridge_lock_changed(owner_peer: int)
 signal employee_changed(eid: int)
+## 내 매장의 설비 배치(이동·구매)가 바뀌었을 때 (뷰 재구축용)
+signal station_layout_changed
 signal stores_changed
 ## 내 매장의 이벤트(§23.1) 시작·진행·해제 시 발신
 signal store_event_changed
@@ -192,6 +194,21 @@ func station(key: StringName) -> StationState:
 	return _local().stations.get(key)
 
 
+## 내 매장의 설비 배치 타일 (없으면 Vector2i.MAX)
+func station_tile(key: StringName) -> Vector2i:
+	return _local().station_tile(key)
+
+
+## 내 매장에서 해당 타일을 점유한 설비 키 (없으면 빈 StringName)
+func station_key_at(tile: Vector2i) -> StringName:
+	return _local().station_key_at(tile)
+
+
+## 내 매장의 설비 배치 맵 (뷰 전용 — 수정 금지)
+func placements_view() -> Dictionary:
+	return _local().placements
+
+
 # ── 서버 측 셋업 (매장 로드 시) ─────────────────────────────────────
 
 ## 모든 피어가 동일한 레이아웃을 로컬 적용 (지형은 결정적 — 동기화 불필요).
@@ -318,8 +335,8 @@ func request_station_interact(key: StringName, player_tile: Vector2i) -> void:
 	var st: StationState = s.stations.get(key)
 	if st == null:
 		return
-	var entry: Dictionary = layout.stations.get(key, {})
-	if not entry.is_empty() and not _in_reach(player_tile, entry["tile"]):
+	var tile: Vector2i = s.station_tile(key)
+	if tile != Vector2i.MAX and not _in_reach(player_tile, tile):
 		return
 	var def: StationDef = st.get_def()
 	# 매장 이벤트 대응 (§23.3): 불붙은 설비에 J = 진압, 정전 중 냉장고에 J = 차단기
@@ -369,8 +386,8 @@ func request_station_work(key: StringName, player_tile: Vector2i) -> void:
 	var st: StationState = s.stations.get(key)
 	if st == null or st.item_iid == 0:
 		return
-	var entry: Dictionary = layout.stations.get(key, {})
-	if not entry.is_empty() and not _in_reach(player_tile, entry["tile"]):
+	var tile: Vector2i = s.station_tile(key)
+	if tile != Vector2i.MAX and not _in_reach(player_tile, tile):
 		return
 	# 불붙은 설비에서는 작업 불가 — 먼저 진압 (§23.3)
 	if String(s.event.get("type", "")) == "fire" \
@@ -562,6 +579,96 @@ func _tick_order_spawner(city_id: String, s: LiveStore, delta: float) -> void:
 	if market_rng.randf() >= accept:
 		return
 	server_spawn_order(city_id, recipe.id)
+
+
+# ── 설비 배치: 이동·구매 (PLAN.md §15/§29 — 준비 단계 전용) ─────────
+
+## 구매 가능한 설비와 가격 (데이터 조정 가능)
+const STATION_PRICES: Dictionary = {
+	&"station.counter": 3000,
+	&"station.cutting_board": 6000,
+	&"station.breading_table": 6000,
+	&"station.fryer.basic": 12000,
+}
+
+
+## 자기 매장 설비를 빈 바닥 타일로 이동 (아이템은 설비에 실린 채 함께 이동)
+@rpc("any_peer", "call_local", "reliable")
+func request_move_station(key: StringName, tile: Vector2i) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	var city_id: String = city_of_peer(peer)
+	var s: LiveStore = live.get(city_id)
+	if s == null or not s.placements.has(key):
+		return
+	if s.station_employee.has(key):
+		notify_fail.rpc_id(peer, "employee_working")
+		return
+	if not _can_place_station(city_id, s, tile):
+		notify_fail.rpc_id(peer, "invalid_spot")
+		return
+	_apply_station_layout.rpc(city_id, key, "", tile, FranchiseState.money)
+
+
+## 설비 구매 후 즉시 배치
+@rpc("any_peer", "call_local", "reliable")
+func request_buy_station(def_id: StringName, tile: Vector2i) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	var city_id: String = city_of_peer(peer)
+	var s: LiveStore = live.get(city_id)
+	if s == null or not STATION_PRICES.has(def_id):
+		return
+	var price: int = int(STATION_PRICES[def_id])
+	if FranchiseState.money < price:
+		notify_fail.rpc_id(peer, "not_enough_money")
+		return
+	if not _can_place_station(city_id, s, tile):
+		notify_fail.rpc_id(peer, "invalid_spot")
+		return
+	var key: StringName = StringName("u_%d" % s.next_buy_n)
+	_apply_station_layout.rpc(city_id, key, String(def_id), tile,
+		FranchiseState.money - price)
+
+
+## 설비 배치 가능: 빈 바닥 + 스폰 칸 제외 + 같은 매장 플레이어 발밑 제외(갇힘 방지)
+func _can_place_station(city_id: String, s: LiveStore, tile: Vector2i) -> bool:
+	if not s.grid.can_place_item(tile):
+		return false
+	for order: int in layout.spawn_tiles.keys():
+		if layout.spawn_tiles[order] == tile:
+			return false
+	for node: Node in get_tree().get_nodes_in_group("players"):
+		var player: PlayerController = node as PlayerController
+		if city_of_peer(player.peer_id()) == city_id \
+				and player.tile_pos() == tile:
+			return false
+	return true
+
+
+## 배치 반영: def_id가 비어 있으면 이동, 있으면 구매(설비 상태 신규 생성)
+@rpc("authority", "call_local", "reliable")
+func _apply_station_layout(city_id: String, key: StringName,
+		def_id: String, tile: Vector2i, new_money: int) -> void:
+	FranchiseState.set_money(new_money)
+	var s: LiveStore = live.get(city_id)
+	if s == null:
+		return
+	if def_id != "":
+		s.placements[key] = {"def_id": StringName(def_id), "tile": tile}
+		s.stations[key] = StationState.create(key, StringName(def_id))
+		s.next_buy_n += 1
+	else:
+		var entry: Dictionary = s.placements.get(key, {})
+		if entry.is_empty():
+			return
+		s.grid.blocked.erase(entry["tile"])
+		entry["tile"] = tile
+	s.grid.blocked[tile] = true
+	if city_id == my_city():
+		station_layout_changed.emit()
 
 
 # ── 매장 이벤트 (PLAN.md §23.1/§23.3) ───────────────────────────────
@@ -1038,11 +1145,11 @@ func _apply_fire(city_id: String, eid: int, new_money: int) -> void:
 		employee_changed.emit(eid)
 
 
-func _work_tile_of(station_key: StringName) -> Vector2i:
-	var entry: Dictionary = layout.stations.get(station_key, {})
-	if entry.is_empty():
+func _work_tile_of(s: LiveStore, station_key: StringName) -> Vector2i:
+	var tile: Vector2i = s.station_tile(station_key)
+	if tile == Vector2i.MAX:
 		return EMP_SPAWN_TILE
-	return (entry["tile"] as Vector2i) + Vector2i(0, 1)
+	return tile + Vector2i(0, 1)
 
 
 func _employee_go(city_id: String, emp: EmployeeState,
@@ -1071,7 +1178,7 @@ func _tick_employee(city_id: String, s: LiveStore,
 				# 도마를 즉시 예약 — 이동 중에도 플레이어 개입 차단 (§10.6)
 				s.station_employee[EMP_BOARD_KEY] = emp.eid
 				_employee_go(city_id, emp, EmployeeState.Phase.TO_BOX,
-					_work_tile_of(EMP_BOX_KEY))
+					_work_tile_of(s, EMP_BOX_KEY))
 		EmployeeState.Phase.TO_BOX:
 			if emp.timer > 0.0:
 				return
@@ -1090,7 +1197,7 @@ func _tick_employee(city_id: String, s: LiveStore,
 			_apply_stock.rpc(city_id, s.ingredient_stock)
 			emp.carrying_iid = iid
 			_employee_go(city_id, emp, EmployeeState.Phase.TO_BOARD,
-				_work_tile_of(EMP_BOARD_KEY))
+				_work_tile_of(s, EMP_BOARD_KEY))
 		EmployeeState.Phase.TO_BOARD:
 			if emp.timer > 0.0:
 				return
@@ -1125,7 +1232,7 @@ func _tick_employee(city_id: String, s: LiveStore,
 				_apply_item_data.rpc(item.to_dict())
 				_apply_station_state.rpc(city_id, EMP_BOARD_KEY, 0, false)
 				_employee_go(city_id, emp, EmployeeState.Phase.TO_OUTPUT,
-					_work_tile_of(EMP_OUTPUT_KEY))
+					_work_tile_of(s, EMP_OUTPUT_KEY))
 			else:
 				_apply_item_data.rpc(item.to_dict())
 				_apply_station_state.rpc(city_id, EMP_BOARD_KEY, board.item_iid, true)

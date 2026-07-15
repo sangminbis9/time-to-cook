@@ -4,8 +4,8 @@ extends GutTest
 
 func test_incheon_layout_parses() -> void:
 	var layout: StoreLayout = StoreLayout.incheon()
-	assert_eq(layout.width, 20)
-	assert_eq(layout.height, 11)
+	assert_eq(layout.width, 13)
+	assert_eq(layout.height, 9)
 	assert_eq(layout.spawn_tiles.size(), 2, "플레이어 스폰 2개")
 
 

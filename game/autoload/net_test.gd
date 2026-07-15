@@ -99,6 +99,8 @@ func _run() -> void:
 			await _scenario_independent_stores()
 		"store_events":
 			await _scenario_store_events()
+		"station_edit":
+			await _scenario_station_edit()
 		"market":
 			await _scenario_market()
 		"dynamic_economy":
@@ -191,7 +193,7 @@ func _scenario_coop_cook_submit() -> void:
 	var near_board: Vector2i = Vector2i(3, 2)
 	var near_bread: Vector2i = Vector2i(6, 2)
 	var near_fryer: Vector2i = Vector2i(9, 2)
-	var near_submit: Vector2i = Vector2i(9, 8)
+	var near_submit: Vector2i = Vector2i(9, 6)
 	var board: StationDef = Defs.get_def(&"station.cutting_board") as StationDef
 	var fryer_def: StationDef = Defs.get_def(&"station.fryer.basic") as StationDef
 
@@ -345,7 +347,7 @@ func _scenario_day_loop() -> void:
 
 ## 냉장고 (§17): 단독 잠금, 보관 이동, 마감 생존, 연결 해제 시 잠금 회수.
 func _scenario_fridge() -> void:
-	var near_fridge: Vector2i = Vector2i(18, 2)
+	var near_fridge: Vector2i = Vector2i(12, 2)
 	if role == "host":
 		await _wait_until(func() -> bool: return _guest_ready)
 		GameClock.service_length = 3.0
@@ -524,7 +526,7 @@ func _scenario_economy() -> void:
 	GameServer.request_station_interact.rpc_id(1, &"f_1", Vector2i(9, 2))
 	# 활성 주문 대기 (자동 스포너) 후 제출
 	await _wait_until(func() -> bool: return not GameServer.orders.active.is_empty())
-	GameServer.request_station_interact.rpc_id(1, &"x_1", Vector2i(9, 8))
+	GameServer.request_station_interact.rpc_id(1, &"x_1", Vector2i(9, 6))
 	await _sleep(0.3)
 	_check(FranchiseState.money == 59000,
 		"설정가 4000원 매출 반영 (실제 %d)" % FranchiseState.money)
@@ -554,7 +556,7 @@ func _scenario_multi_store() -> void:
 	_inject_and_hire_basic()
 	GameServer.request_station_interact.rpc_id(1, &"i_1", Vector2i(1, 2))
 	await _sleep(0.2)
-	GameServer.request_station_interact.rpc_id(1, &"r_1", Vector2i(18, 2))
+	GameServer.request_station_interact.rpc_id(1, &"r_1", Vector2i(12, 2))
 	await _sleep(0.2)
 	GameServer.request_fridge_move.rpc_id(
 		1, 1, GameServer.inventory_of(1).selected, 0, 0)
@@ -683,7 +685,7 @@ func _scenario_independent_stores() -> void:
 func _scenario_store_events() -> void:
 	const CITY: String = "city.korea.incheon"
 	var near_fryer: Vector2i = Vector2i(9, 2)
-	var near_fridge: Vector2i = Vector2i(18, 2)
+	var near_fridge: Vector2i = Vector2i(12, 2)
 	GameClock.service_length = 60.0
 	GameServer.order_interval_min = 0.1
 	GameServer.order_interval_max = 0.2
@@ -739,6 +741,58 @@ func _scenario_store_events() -> void:
 	_check(GameServer.fridge.lock_owner == 0, "복구 시 냉장고 UI 미개방")
 	await _sleep(0.6)
 	_check(item2.cook_elapsed > 0.0, "복구 후 조리 재개")
+	_finish(_all_passed(), "")
+
+
+## 설비 배치 (§15, 솔로): 이동 → 점유/스폰 칸 거부 → 구매 → 자금 부족 거부 →
+## 스냅샷 직렬화 왕복으로 배치 보존 확인.
+func _scenario_station_edit() -> void:
+	FranchiseState.set_money(20000)
+	_check(GameServer.station_key_at(Vector2i(1, 1)) == &"c_1", "초기 배치 c_1")
+	# 이동: 작업대 c_1 (1,1) → (5,4)
+	GameServer.request_move_station.rpc_id(1, &"c_1", Vector2i(5, 4))
+	await _sleep(0.2)
+	_check(GameServer.station_key_at(Vector2i(5, 4)) == &"c_1", "이동 반영")
+	_check(GameServer.station_key_at(Vector2i(1, 1)) == StringName(), "원래 칸 비움")
+	_check(GameServer.grid.can_place_item(Vector2i(1, 1)), "빈 칸에 아이템 배치 가능")
+	_check(not GameServer.grid.can_place_item(Vector2i(5, 4)), "새 칸은 차단")
+	# 점유 칸·스폰 칸으로는 이동 불가
+	GameServer.request_move_station.rpc_id(1, &"d_1", Vector2i(5, 4))
+	await _sleep(0.2)
+	_check(GameServer.station_tile(&"d_1") == Vector2i(2, 1), "점유 칸 이동 거부")
+	GameServer.request_move_station.rpc_id(1, &"d_1", Vector2i(8, 5))
+	await _sleep(0.2)
+	_check(GameServer.station_tile(&"d_1") == Vector2i(2, 1), "스폰 칸 이동 거부")
+	# 구매: 튀김기 12000원 → u_1 키로 배치
+	GameServer.request_buy_station.rpc_id(1, &"station.fryer.basic", Vector2i(6, 4))
+	await _sleep(0.2)
+	_check(FranchiseState.money == 8000, "구매비 차감 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.station_key_at(Vector2i(6, 4)) == &"u_1", "구매 설비 배치")
+	var bought: StationState = GameServer.station(&"u_1")
+	_check(bought != null
+		and bought.get_def().kind == StationDef.Kind.FRYER, "설비 상태 생성")
+	# 자금 부족 → 구매 거부
+	GameServer.request_buy_station.rpc_id(1, &"station.fryer.basic", Vector2i(7, 4))
+	await _sleep(0.2)
+	_check(GameServer.station_key_at(Vector2i(7, 4)) == StringName(),
+		"자금 부족 구매 거부")
+	# 직렬화 왕복: 스냅샷 재적용 후에도 배치·구매 설비 유지 (세이브 경로와 동일)
+	GameServer.apply_snapshot_local(GameServer.build_snapshot())
+	await _sleep(0.1)
+	_check(GameServer.station_key_at(Vector2i(5, 4)) == &"c_1", "왕복 후 이동 유지")
+	_check(GameServer.station_key_at(Vector2i(6, 4)) == &"u_1", "왕복 후 구매 유지")
+	# 관리 팝업·배치 모드 스모크: 생성·갱신 경로 런타임 오류 없는지
+	for popup: Control in [StoreEditUi.new(), StaffUi.new(), ManageUi.new()]:
+		get_tree().root.add_child(popup)
+		await _sleep(0.1)
+		popup.queue_free()
+		await _sleep(0.05)
+	var scene: Node = get_tree().get_first_node_in_group("store_scene")
+	_check(scene != null, "매장 씬 그룹 등록")
+	scene.begin_move_station(&"c_1")
+	scene.begin_buy_station(&"station.counter")
+	await _sleep(0.2)
+	_check(true, "관리 팝업·배치 모드 스모크")
 	_finish(_all_passed(), "")
 
 
@@ -855,7 +909,7 @@ func _scenario_save_write() -> void:
 	# 재료 수령 → 냉장고 보관
 	GameServer.request_station_interact.rpc_id(1, &"i_1", Vector2i(1, 2))
 	await _sleep(0.2)
-	GameServer.request_station_interact.rpc_id(1, &"r_1", Vector2i(18, 2))
+	GameServer.request_station_interact.rpc_id(1, &"r_1", Vector2i(12, 2))
 	await _sleep(0.2)
 	GameServer.request_fridge_move.rpc_id(
 		1, 1, GameServer.inventory_of(1).selected, 0, 0)

@@ -20,9 +20,11 @@ func setup(p_eid: int) -> void:
 	_sprite.texture = load("res://assets/sprites/player_mint.png")
 	_sprite.hframes = 8
 	_sprite.modulate = Color(0.85, 0.85, 0.95)  # 직원 구분 톤
+	_sprite.position = Vector2(0, -8)  # 확대해도 발 위치 유지
+	_sprite.scale = Vector2(1.5, 1.5)
 	add_child(_sprite)
 	_item_sprite = Sprite2D.new()
-	_item_sprite.position = Vector2(0, -22)
+	_item_sprite.position = Vector2(0, -34)
 	_item_sprite.visible = false
 	add_child(_item_sprite)
 	GameServer.employee_changed.connect(_on_changed)

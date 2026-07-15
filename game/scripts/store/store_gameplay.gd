@@ -18,14 +18,18 @@ var _dimmer: CanvasModulate
 
 
 func _ready() -> void:
+	add_to_group("store_scene")  # 배치 모드 진입용 (매장 관리 UI에서 참조)
 	layout = StoreLayout.incheon()
 	GameServer.setup_store(layout)
 	_seen_city = GameServer.my_city()
 	_build_tiles()
-	_build_stations()
+	_sync_station_views()
+	_build_edit_mode()
 	_dimmer = CanvasModulate.new()
 	_dimmer.color = Color.WHITE
 	add_child(_dimmer)
+	GameServer.station_layout_changed.connect(_sync_station_views)
+	GameServer.snapshot_applied.connect(_sync_station_views)
 	GameServer.employee_changed.connect(_on_employee_changed)
 	GameServer.snapshot_applied.connect(_sync_employee_views)
 	GameServer.snapshot_applied.connect(_on_world_resync)
@@ -96,9 +100,14 @@ func _sync_employee_views() -> void:
 		_on_employee_changed(eid)
 
 
-func _build_stations() -> void:
-	for key: StringName in layout.stations.keys():
-		var entry: Dictionary = layout.stations[key]
+## 설비 뷰를 내 매장의 현재 배치와 일치시킨다 (이동·구매·매장 전환 반영).
+## 배치는 자주 바뀌지 않으므로 전체 재구축이 가장 단순하다.
+func _sync_station_views() -> void:
+	for child: Node in _stations.get_children():
+		child.queue_free()
+	var placements: Dictionary = GameServer.placements_view()
+	for key: StringName in placements.keys():
+		var entry: Dictionary = placements[key]
 		var def: StationDef = Defs.get_def(entry["def_id"]) as StationDef
 		var view: StationView = StationView.new()
 		_stations.add_child(view)
@@ -152,3 +161,105 @@ func _refresh_event_fx() -> void:
 	var blackout: bool = String(GameServer.current_store_event().get(
 		"type", "")) == "blackout"
 	_dimmer.color = Color(0.4, 0.4, 0.55) if blackout else Color.WHITE
+
+
+# ── 설비 배치 모드 (§15 — 준비 단계, 매장 관리 UI에서 진입) ─────────
+## 마우스로 대상 타일을 고른다. 좌클릭 배치, Esc/우클릭 취소.
+
+var _edit_move_key: StringName = StringName()  # 이동 대상 (빈 값이면 구매)
+var _edit_buy_def: StringName = StringName()   # 구매 대상 def_id
+var _edit_cursor: Sprite2D
+var _edit_hint: Label
+
+
+func _build_edit_mode() -> void:
+	_edit_cursor = Sprite2D.new()
+	_edit_cursor.texture = load("res://assets/sprites/highlight_ring.png")
+	_edit_cursor.visible = false
+	add_child(_edit_cursor)
+	var hint_layer: CanvasLayer = CanvasLayer.new()
+	add_child(hint_layer)
+	_edit_hint = Label.new()
+	_edit_hint.anchor_left = 0.5
+	_edit_hint.anchor_right = 0.5
+	_edit_hint.offset_left = -160.0
+	_edit_hint.offset_right = 160.0
+	_edit_hint.offset_top = 40.0
+	_edit_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_edit_hint.add_theme_font_size_override("font_size", 11)
+	_edit_hint.add_theme_color_override("font_color", Color(0.35, 0.27, 0.2))
+	_edit_hint.add_theme_color_override("font_outline_color", Color(0.97, 0.94, 0.85))
+	_edit_hint.add_theme_constant_override("outline_size", 2)
+	_edit_hint.visible = false
+	hint_layer.add_child(_edit_hint)
+
+
+func edit_active() -> bool:
+	return _edit_move_key != StringName() or _edit_buy_def != StringName()
+
+
+func begin_move_station(key: StringName) -> void:
+	_edit_move_key = key
+	_edit_buy_def = StringName()
+	var def: StationDef = Defs.get_def(
+		GameServer.placements_view()[key]["def_id"]) as StationDef
+	_start_edit("%s 이동 — 클릭: 배치 · Esc: 취소" % def.display_name_ko)
+
+
+func begin_buy_station(def_id: StringName) -> void:
+	_edit_buy_def = def_id
+	_edit_move_key = StringName()
+	var def: StationDef = Defs.get_def(def_id) as StationDef
+	_start_edit("%s 구매 — 클릭: 배치 · Esc: 취소" % def.display_name_ko)
+
+
+func _start_edit(hint: String) -> void:
+	_edit_hint.text = hint
+	_edit_hint.visible = true
+	_edit_cursor.visible = true
+
+
+func _cancel_edit() -> void:
+	_edit_move_key = StringName()
+	_edit_buy_def = StringName()
+	_edit_cursor.visible = false
+	_edit_hint.visible = false
+
+
+func _process(_delta: float) -> void:
+	if not edit_active():
+		return
+	if GameClock.phase != GameClock.Phase.PREP:
+		_cancel_edit()
+		return
+	var tile: Vector2i = _mouse_tile()
+	_edit_cursor.position = Vector2(tile * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
+	_edit_cursor.modulate = Color(0.5, 1.0, 0.5) \
+		if GameServer.grid.can_place_item(tile) else Color(1.0, 0.45, 0.45)
+
+
+func _mouse_tile() -> Vector2i:
+	var pos: Vector2 = get_global_mouse_position()
+	return Vector2i(floori(pos.x / TILE), floori(pos.y / TILE))
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not edit_active():
+		return
+	if event.is_action_pressed("ui_cancel"):
+		_cancel_edit()
+		get_viewport().set_input_as_handled()
+		return
+	var click: InputEventMouseButton = event as InputEventMouseButton
+	if click == null or not click.pressed:
+		return
+	if click.button_index == MOUSE_BUTTON_RIGHT:
+		_cancel_edit()
+	elif click.button_index == MOUSE_BUTTON_LEFT:
+		var tile: Vector2i = _mouse_tile()
+		if _edit_move_key != StringName():
+			GameServer.request_move_station.rpc_id(1, _edit_move_key, tile)
+		else:
+			GameServer.request_buy_station.rpc_id(1, _edit_buy_def, tile)
+		_cancel_edit()
+	get_viewport().set_input_as_handled()

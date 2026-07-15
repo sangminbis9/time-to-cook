@@ -19,6 +19,8 @@ properties/2/replication_mode = 1
 script = ExtResource("1_ctrl")
 
 [node name="Sprite" type="Sprite2D" parent="."]
+position = Vector2(0, -8)
+scale = Vector2(1.5, 1.5)
 texture = ExtResource("2_sheet")
 hframes = 8
 
@@ -28,9 +30,9 @@ position_smoothing_enabled = false
 
 [node name="Prompt" type="Label" parent="."]
 offset_left = -60.0
-offset_top = -34.0
+offset_top = -46.0
 offset_right = 60.0
-offset_bottom = -18.0
+offset_bottom = -30.0
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.353, 0.275, 0.196, 1)
 theme_override_colors/font_outline_color = Color(0.969, 0.937, 0.851, 1)

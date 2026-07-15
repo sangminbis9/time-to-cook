@@ -6,6 +6,11 @@ extends RefCounted
 
 var grid: GridState = GridState.new()
 var stations: Dictionary = {}          ## key(StringName) → StationState
+## 설비 배치: key(StringName) → {"def_id": StringName, "tile": Vector2i}.
+## 레이아웃 템플릿에서 시작하되 준비 단계 이동·구매로 매장별로 달라진다 (§15).
+var placements: Dictionary = {}
+## 구매 설비 키(u_n) 발급 카운터
+var next_buy_n: int = 1
 ## 직원이 점유한 설비: station_key → eid (§10.6 — 플레이어 개입 차단)
 var station_employee: Dictionary = {}
 var fridge: FridgeState = FridgeState.create(&"fridge.small", 3)
@@ -26,13 +31,34 @@ var event: Dictionary = {}
 static func create(layout: StoreLayout) -> LiveStore:
 	var store: LiveStore = LiveStore.new()
 	store.grid.walkable = layout.walkable.duplicate()
-	store.grid.blocked = layout.station_tiles().duplicate()
-	for key: StringName in layout.stations.keys():
-		var entry: Dictionary = layout.stations[key]
-		store.stations[key] = StationState.create(key, entry["def_id"])
+	store._install_placements(layout.stations.duplicate(true))
 	var fridge_def: RefrigeratorDef = Defs.get_def(&"fridge.small") as RefrigeratorDef
 	store.fridge = FridgeState.create(fridge_def.id, fridge_def.slot_count)
 	return store
+
+
+## 배치 맵으로 설비 상태·차단 타일을 재구축 (기존 설비 상태는 버려진다)
+func _install_placements(p_placements: Dictionary) -> void:
+	placements = p_placements
+	stations.clear()
+	grid.blocked.clear()
+	for key: StringName in placements.keys():
+		var entry: Dictionary = placements[key]
+		stations[key] = StationState.create(key, entry["def_id"])
+		grid.blocked[entry["tile"]] = true
+
+
+func station_tile(key: StringName) -> Vector2i:
+	var entry: Dictionary = placements.get(key, {})
+	return entry["tile"] if not entry.is_empty() else Vector2i.MAX
+
+
+func station_key_at(tile: Vector2i) -> StringName:
+	for key: StringName in placements.keys():
+		var entry: Dictionary = placements[key]
+		if entry["tile"] == tile:
+			return key
+	return StringName()
 
 
 ## 매장 귀속 상태 직렬화 (스냅샷·세이브·오프라인 번들 공통).
@@ -44,8 +70,18 @@ func to_dict() -> Dictionary:
 	var emp_dicts: Dictionary = {}
 	for eid: int in employees.keys():
 		emp_dicts[str(eid)] = (employees[eid] as EmployeeState).to_dict()
+	var place_dicts: Dictionary = {}
+	for key: StringName in placements.keys():
+		var entry: Dictionary = placements[key]
+		var tile: Vector2i = entry["tile"]
+		place_dicts[String(key)] = {
+			"def_id": String(entry["def_id"]),
+			"tile": "%d,%d" % [tile.x, tile.y],  # JSON 호환
+		}
 	return {
 		"grid": grid.to_dict(),
+		"placements": place_dicts,
+		"next_buy_n": next_buy_n,
 		"stations": station_dicts,
 		"fridge": fridge.to_dict(),
 		"fridge_lock": fridge.lock_owner,
@@ -57,9 +93,24 @@ func to_dict() -> Dictionary:
 	}
 
 
-## 직렬화 복원. v2 오프라인 번들(orders/fridge_lock 없음)도 그대로 수용한다.
+## 직렬화 복원. v2 오프라인 번들(orders/fridge_lock 없음)도 그대로 수용하고,
+## placements가 없는 구버전 데이터는 레이아웃 템플릿 배치를 유지한다.
 static func from_dict(data: Dictionary, layout: StoreLayout) -> LiveStore:
 	var store: LiveStore = LiveStore.create(layout)
+	if data.has("placements"):
+		var parsed: Dictionary = {}
+		var place_dicts: Dictionary = data["placements"]
+		for key: String in place_dicts.keys():
+			var entry: Dictionary = place_dicts[key]
+			var parts: PackedStringArray = String(entry.get("tile", "")).split(",")
+			if parts.size() != 2:
+				continue
+			parsed[StringName(key)] = {
+				"def_id": StringName(String(entry.get("def_id", ""))),
+				"tile": Vector2i(int(parts[0]), int(parts[1])),
+			}
+		store._install_placements(parsed)
+	store.next_buy_n = int(data.get("next_buy_n", 1))
 	store.grid.load_items(data.get("grid", {}))
 	var station_dicts: Dictionary = data.get("stations", {})
 	for key: String in station_dicts.keys():

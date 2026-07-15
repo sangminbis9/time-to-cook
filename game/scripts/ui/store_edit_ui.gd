@@ -1,0 +1,112 @@
+class_name StoreEditUi
+extends PanelContainer
+## 매장 관리 팝업 (준비 단계 전용): 설비 이동·구매 (§15).
+## 이동/구매를 고르면 팝업을 닫고 매장 씬의 클릭 배치 모드로 넘어간다.
+
+var _rows: VBoxContainer
+
+
+func _ready() -> void:
+	add_to_group("modal_ui")
+	anchor_left = 0.5
+	anchor_right = 0.5
+	anchor_top = 0.5
+	anchor_bottom = 0.5
+	offset_left = -150.0
+	offset_right = 150.0
+	offset_top = -120.0
+	offset_bottom = 120.0
+
+	var root: VBoxContainer = VBoxContainer.new()
+	root.add_theme_constant_override("separation", 4)
+	add_child(root)
+	var title: Label = Label.new()
+	title.text = "매장 관리  (Esc: 닫기)"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 11)
+	root.add_child(title)
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(290, 200)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(scroll)
+	_rows = VBoxContainer.new()
+	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rows.add_theme_constant_override("separation", 2)
+	scroll.add_child(_rows)
+
+	GameServer.station_layout_changed.connect(_refresh)
+	FranchiseState.money_changed.connect(func(_m: int) -> void: _refresh())
+	GameClock.phase_changed.connect(func(phase: GameClock.Phase) -> void:
+		if phase != GameClock.Phase.PREP:
+			queue_free())
+	_refresh()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		queue_free()
+		get_viewport().set_input_as_handled()
+
+
+func _refresh() -> void:
+	for child: Node in _rows.get_children():
+		child.queue_free()
+	_add_header("── 내 설비 (이동) ──")
+	var placements: Dictionary = GameServer.placements_view()
+	var keys: Array = placements.keys()
+	keys.sort_custom(func(a: StringName, b: StringName) -> bool:
+		return String(a) < String(b))
+	for key: StringName in keys:
+		var entry: Dictionary = placements[key]
+		var def: StationDef = Defs.get_def(entry["def_id"]) as StationDef
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var label: Label = Label.new()
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_font_size_override("font_size", 11)
+		label.text = def.display_name_ko
+		row.add_child(label)
+		var move: Button = Button.new()
+		move.text = "이동"
+		move.add_theme_font_size_override("font_size", 11)
+		var move_key: StringName = key
+		move.pressed.connect(func() -> void: _begin("move", move_key, StringName()))
+		row.add_child(move)
+		_rows.add_child(row)
+	_add_header("── 설비 구매 ──")
+	for def_id: StringName in GameServer.STATION_PRICES.keys():
+		var def: StationDef = Defs.get_def(def_id) as StationDef
+		var price: int = int(GameServer.STATION_PRICES[def_id])
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var label: Label = Label.new()
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_font_size_override("font_size", 11)
+		label.text = "%s  %d원" % [def.display_name_ko, price]
+		row.add_child(label)
+		var buy: Button = Button.new()
+		buy.text = "구매"
+		buy.add_theme_font_size_override("font_size", 11)
+		buy.disabled = FranchiseState.money < price
+		var buy_def: StringName = def_id
+		buy.pressed.connect(func() -> void: _begin("buy", StringName(), buy_def))
+		row.add_child(buy)
+		_rows.add_child(row)
+
+
+func _add_header(text: String) -> void:
+	var header: Label = Label.new()
+	header.text = text
+	header.add_theme_font_size_override("font_size", 11)
+	_rows.add_child(header)
+
+
+## 팝업을 닫고 매장 씬의 클릭 배치 모드로 진입
+func _begin(mode: String, key: StringName, def_id: StringName) -> void:
+	var scene: Node = get_tree().get_first_node_in_group("store_scene")
+	if scene != null:
+		if mode == "move":
+			scene.begin_move_station(key)
+		else:
+			scene.begin_buy_station(def_id)
+	queue_free()

@@ -32,14 +32,30 @@ var _step_timer: float = 0.0
 func _enter_tree() -> void:
 	# 노드 이름 = 소유 피어 ID (스포너 규약)
 	set_multiplayer_authority(str(name).to_int())
+	add_to_group("players")  # 서버의 설비 배치 검증(발밑 금지)에서 참조
 
 
 func _ready() -> void:
 	_camera.enabled = is_multiplayer_authority()
+	_setup_camera_limits()
 	_prompt.visible = false
 	_highlight.visible = false
 	if peer_id() != 1:
 		_sprite.texture = load("res://assets/sprites/player_apricot.png")
+
+
+## 맵이 뷰포트보다 작은 축은 카메라를 중앙 고정, 큰 축은 맵 경계에서 클램프
+func _setup_camera_limits() -> void:
+	if GameServer.layout == null:
+		return
+	var map_size: Vector2 = Vector2(
+		GameServer.layout.width, GameServer.layout.height) * TILE
+	var view: Vector2 = get_viewport_rect().size
+	var margin: Vector2 = (view - map_size) / 2.0
+	_camera.limit_left = int(-maxf(0.0, margin.x))
+	_camera.limit_right = int(map_size.x + maxf(0.0, margin.x))
+	_camera.limit_top = int(-maxf(0.0, margin.y))
+	_camera.limit_bottom = int(map_size.y + maxf(0.0, margin.y))
 
 
 func _physics_process(delta: float) -> void:
@@ -137,7 +153,7 @@ func _update_facing(input_dir: Vector2) -> void:
 # ── 대상 선택·하이라이트·안내 (로컬 전용, §14/§24.3) ────────────────
 
 func _process_targeting() -> void:
-	var target: Dictionary = InteractionSelector.pick(tile_pos(), facing)
+	var target: Dictionary = InteractionSelector.pick(position, facing)
 	var target_type: InteractionSelector.TargetType = target["type"]
 	if target_type == InteractionSelector.TargetType.NONE:
 		_highlight.visible = false
@@ -179,7 +195,7 @@ func _prompt_for(target: Dictionary) -> String:
 
 
 func _on_interact() -> void:
-	var target: Dictionary = InteractionSelector.pick(tile_pos(), facing)
+	var target: Dictionary = InteractionSelector.pick(position, facing)
 	var target_type: InteractionSelector.TargetType = target["type"]
 	match target_type:
 		InteractionSelector.TargetType.FLOOR_ITEM:
@@ -192,7 +208,7 @@ func _on_interact() -> void:
 
 
 func _on_cook() -> void:
-	var target: Dictionary = InteractionSelector.pick(tile_pos(), facing)
+	var target: Dictionary = InteractionSelector.pick(position, facing)
 	var target_type: InteractionSelector.TargetType = target["type"]
 	if target_type == InteractionSelector.TargetType.STATION:
 		GameServer.request_station_work.rpc_id(1, target["station_key"], tile_pos())

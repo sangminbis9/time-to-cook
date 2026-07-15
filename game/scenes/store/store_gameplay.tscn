@@ -19,7 +19,7 @@ tile_set = ExtResource("2_tiles")
 
 [node name="MenuBoard" type="Sprite2D" parent="Decor"]
 texture = ExtResource("5_menu")
-position = Vector2(432, 16)
+position = Vector2(368, 16)
 
 [node name="World" type="Node2D" parent="."]
 y_sort_enabled = true

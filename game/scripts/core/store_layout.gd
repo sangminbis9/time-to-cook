@@ -19,19 +19,18 @@ const SYMBOL_TO_STATION: Dictionary = {
 	"R": &"station.fridge.small",
 }
 
-## 인천 시작 매장 (20×11) — PLAN.md §29.1
+## 인천 시작 매장 (13×9) — PLAN.md §29.1
+## 양옆 벽은 아트 준비 전이라 생략 — 이동은 walkable 경계가 막는다.
 const INCHEON_SMALL: Array[String] = [
-	"####################",
-	"#ICDDCBBCFFC......R#",
-	"#..................#",
-	"#........1.........#",
-	"#..................#",
-	"#..................#",
-	"#.........2........#",
-	"#..................#",
-	"#..................#",
-	"#........XX........#",
-	"####################",
+	"#############",
+	"ICDDCBBCFFC.R",
+	".............",
+	"....1........",
+	".............",
+	"........2....",
+	".............",
+	"........XX...",
+	"#############",
 ]
 
 var width: int = 0
@@ -71,6 +70,8 @@ static func parse(rows: Array[String]) -> StoreLayout:
 						counts[symbol] = n
 						var key: StringName = StringName("%s_%d" % [symbol.to_lower(), n])
 						layout.stations[key] = {"def_id": def_id, "tile": tile}
+						# 설비 발밑도 바닥 — 설비를 옮기면 걷고 놓을 수 있어야 한다
+						layout.walkable[tile] = true
 	return layout
 
 
