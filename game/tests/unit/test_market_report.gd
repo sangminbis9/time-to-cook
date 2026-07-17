@@ -73,6 +73,36 @@ func test_paid_total_accumulates() -> void:
 	assert_eq(int(second["paid_total"]), 8000, "실지불 성공 누적")
 
 
+func test_scam_vanish_rotation() -> void:
+	# 사기 친 정보상은 2~4일 잠적 후 다른 이름으로 재등장 (§7.3)
+	for i in range(30):
+		var row: Dictionary = MarketReport.scam_vanish("뒷골목 정보상", 5, rng)
+		assert_between(int(row["gone_until"]), 5 + MarketReport.GONE_DAYS_MIN,
+			5 + MarketReport.GONE_DAYS_MAX)
+		assert_ne(String(row["alias"]), "뒷골목 정보상", "이름이 반드시 바뀐다")
+		assert_true(MarketReport.BROKER_ALIASES.has(String(row["alias"])))
+
+
+func test_broker_gone_window() -> void:
+	var state: Dictionary = {"market.broker.cheap": {
+		"alias": "떠돌이 소식통", "gone_until": 8}}
+	assert_true(MarketReport.broker_gone(state, "market.broker.cheap", 7),
+		"잠적 중 거래 불가")
+	assert_false(MarketReport.broker_gone(state, "market.broker.cheap", 8),
+		"잠적 종료 후 재등장")
+	assert_false(MarketReport.broker_gone({}, "market.broker.cheap", 7),
+		"사기 이력 없으면 항상 가능")
+
+
+func test_broker_name_alias() -> void:
+	assert_eq(MarketReport.broker_name({}, cheap), cheap.display_name_ko,
+		"이력 없으면 원래 이름")
+	var state: Dictionary = {String(cheap.id): {
+		"alias": "부둣가 중개인", "gone_until": 3}}
+	assert_eq(MarketReport.broker_name(state, cheap), "부둣가 중개인",
+		"사기 후에는 바뀐 이름 (§7.3)")
+
+
 func test_recheck_badge() -> void:
 	var fresh: Dictionary = MarketReport.exact_report(city, 10)
 	assert_false(MarketReport.needs_recheck(fresh, city, 10 + city.recheck_days))

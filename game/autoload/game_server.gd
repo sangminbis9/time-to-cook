@@ -1047,14 +1047,21 @@ func request_buy_market_info(city_id: String, source_id: String) -> void:
 		return
 	var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
 	var source: MarketSourceDef = Defs.get_def(StringName(source_id)) as MarketSourceDef
+	# 사기 후 잠적 중인 정보상과는 거래할 수 없다 (§7.3)
+	if MarketReport.broker_gone(FranchiseState.broker_state, source_id, GameClock.day):
+		notify_fail.rpc_id(peer, "broker_gone")
+		return
 	var current: Dictionary = FranchiseState.market_info.get(city_id, {})
 	var price: int = MarketReport.price_for(source, current)
 	if FranchiseState.money < price:
 		notify_fail.rpc_id(peer, "not_enough_money")
 		return
 	if market_rng.randf() < source.scam_chance:
-		# 사기: 지불액 전액 손실, 환불·추적 없음 (§7.3)
-		_apply_market_scam.rpc(FranchiseState.money - price)
+		# 사기: 지불액 전액 손실, 환불·추적 없음. 정보상은 잠적 후
+		# 다른 이름으로 재등장한다 (§7.3)
+		_apply_market_scam.rpc(source_id, MarketReport.scam_vanish(
+			MarketReport.broker_name(FranchiseState.broker_state, source),
+			GameClock.day, market_rng), FranchiseState.money - price)
 		notify_fail.rpc_id(peer, "market_scammed")
 		return
 	# 보고서에는 현재 변동 배율이 반영된다 — 오래된 정보는 현실과 어긋남 (§7.5)
@@ -1065,7 +1072,9 @@ func request_buy_market_info(city_id: String, source_id: String) -> void:
 
 
 @rpc("authority", "call_local", "reliable")
-func _apply_market_scam(new_money: int) -> void:
+func _apply_market_scam(source_id: String, vanish_row: Dictionary,
+		new_money: int) -> void:
+	FranchiseState.broker_state[source_id] = vanish_row
 	FranchiseState.set_money(new_money)
 	market_info_changed.emit()
 

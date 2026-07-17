@@ -18,6 +18,7 @@ const FAIL_MESSAGES: Dictionary = {
 	"loan_limit": "대출은 최대 3건까지입니다",
 	"loan_overdue": "연체 중에는 대출을 받을 수 없습니다",
 	"market_scammed": "정보상에게 사기를 당했습니다!",
+	"broker_gone": "정보상과 연락이 닿지 않습니다",
 	"station_on_fire": "불이 붙었습니다! J로 진압하세요",
 	"invalid_spot": "그 자리에는 놓을 수 없습니다",
 	"role_taken": "이미 같은 역할의 직원이 있습니다",

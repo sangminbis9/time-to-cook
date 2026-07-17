@@ -186,11 +186,18 @@ func _refresh_detail() -> void:
 		var price: int = MarketReport.price_for(source, report)
 		var button: Button = Button.new()
 		button.add_theme_font_size_override("font_size", 11)
-		button.text = "%s %d원" % [source.display_name_ko, price]
+		var sid: String = String(source_id)
+		# 사기 이력이 있으면 바뀐 이름, 잠적 중이면 거래 불가 (§7.3)
+		if MarketReport.broker_gone(
+				FranchiseState.broker_state, sid, GameClock.day):
+			button.text = "연락 두절"
+			button.disabled = true
+		else:
+			button.text = "%s %d원" % [MarketReport.broker_name(
+				FranchiseState.broker_state, source), price]
+			button.disabled = FranchiseState.money < price
 		if source.scam_chance > 0.0:
 			button.tooltip_text = "사기 위험 %d%%" % int(source.scam_chance * 100)
-		button.disabled = FranchiseState.money < price
-		var sid: String = String(source_id)
 		button.pressed.connect(func() -> void:
 			GameServer.request_buy_market_info.rpc_id(1, _selected_city, sid))
 		buy_row.add_child(button)

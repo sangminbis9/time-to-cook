@@ -853,6 +853,27 @@ func _scenario_market() -> void:
 	_check(FranchiseState.money == 32000, "사기: 지불액 전액 손실")
 	_check(not FranchiseState.market_info.has("city.korea.daegu"), "사기: 정보 미획득")
 	_check(FranchiseState.market_info.has("city.korea.busan"), "사기: 기존 정보 유지")
+	# 재등장 로테이션 (§7.3): 사기 후 잠적 → 거래 차단, 이후 다른 이름으로 재등장
+	var row: Dictionary = FranchiseState.broker_state.get("market.broker.cheap", {})
+	_check(int(row.get("gone_until", 0)) > GameClock.day
+		and String(row.get("alias", "")) != cheap.display_name_ko,
+		"사기 후 잠적 기록 + 새 이름 예약")
+	cheap.scam_chance = 0.0
+	GameServer.request_buy_market_info.rpc_id(
+		1, "city.korea.daegu", "market.broker.cheap")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 32000, "잠적 중 거래 차단 — 자금 유지")
+	# 잠적 종료 강제 (서버 상태 직접 설정 — 솔로) → 새 이름으로 정상 거래
+	row["gone_until"] = GameClock.day
+	FranchiseState.broker_state["market.broker.cheap"] = row
+	_check(MarketReport.broker_name(FranchiseState.broker_state, cheap)
+		== String(row["alias"]), "재등장: 바뀐 이름으로 표시")
+	GameServer.request_buy_market_info.rpc_id(
+		1, "city.korea.daegu", "market.broker.cheap")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 29000
+		and FranchiseState.market_info.has("city.korea.daegu"),
+		"재등장 후 정상 거래 (실제 %d)" % FranchiseState.money)
 	cheap.scam_chance = 0.15
 	_finish(_all_passed(), "")
 

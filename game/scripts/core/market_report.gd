@@ -80,3 +80,44 @@ static func _noisy(value: float, error: float, rng: RandomNumberGenerator) -> fl
 	if error <= 0.0:
 		return value
 	return snappedf(value * (1.0 + rng.randf_range(-error, error)), 0.01)
+
+
+# ── 정보상 재등장 로테이션 (§7.3) ──────────────────────────────────
+## 사기 발생 시 정보상은 며칠 잠적한 뒤 다른 이름으로 다시 등장한다.
+## 특성(가격·정확도·사기 확률)은 영구 고정 — 이름만 바뀐다 (§7.3).
+##
+## 상태 형식: source_id(String) → {"alias": String, "gone_until": int}
+
+const BROKER_ALIASES: Array[String] = [
+	"뒷골목 정보상", "골목 어귀 장사꾼", "떠돌이 소식통", "부둣가 중개인",
+	"시장통 귀동냥꾼", "밤거리 브로커", "얼굴 없는 제보자", "간판 없는 사무소",
+]
+const GONE_DAYS_MIN: int = 2
+const GONE_DAYS_MAX: int = 4
+
+
+## 사기 직후의 새 상태 행: 잠적 기간 + 재등장 시 쓸 새 이름(현재 이름과 다르게).
+static func scam_vanish(current_name: String, today: int,
+		rng: RandomNumberGenerator) -> Dictionary:
+	var alias: String = current_name
+	while alias == current_name:
+		alias = BROKER_ALIASES[rng.randi_range(0, BROKER_ALIASES.size() - 1)]
+	return {
+		"alias": alias,
+		"gone_until": today + rng.randi_range(GONE_DAYS_MIN, GONE_DAYS_MAX),
+	}
+
+
+## 잠적 중 여부 — 잠적 중에는 거래할 수 없다.
+static func broker_gone(state: Dictionary, source_id: String, today: int) -> bool:
+	if not state.has(source_id):
+		return false
+	return today < int((state[source_id] as Dictionary).get("gone_until", 0))
+
+
+## 현재 표시 이름 — 사기 이력이 있으면 바뀐 이름 (§7.3 "다른 이름으로 재등장")
+static func broker_name(state: Dictionary, source: MarketSourceDef) -> String:
+	if not state.has(String(source.id)):
+		return source.display_name_ko
+	return String((state[String(source.id)] as Dictionary).get(
+		"alias", source.display_name_ko))

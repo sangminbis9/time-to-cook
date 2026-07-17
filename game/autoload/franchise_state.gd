@@ -24,6 +24,10 @@ var stores: Dictionary = {}
 ## 시장 정보 (§7.5): city_id(String) → 최근 성공 보고서 스냅샷
 var market_info: Dictionary = {}
 
+## 정보상 로테이션 (§7.3): source_id(String) → {"alias": String, "gone_until": int}
+## 사기 친 정보상은 잠적 후 다른 이름으로 재등장한다. 구조는 MarketReport 참조.
+var broker_state: Dictionary = {}
+
 ## 동적 경제 (§8.1): city_id(String) → 수요 배율 (매일 드리프트)
 var city_econ: Dictionary = {}
 
@@ -67,6 +71,7 @@ func to_dict() -> Dictionary:
 		"next_lid": next_lid,
 		"stores": stores.duplicate(true),
 		"market_info": market_info.duplicate(true),
+		"broker_state": broker_state.duplicate(true),
 		"city_econ": city_econ.duplicate(),
 		"city_events": city_events.duplicate(true),
 		"ad_campaigns": ad_campaigns.duplicate(true),
@@ -89,6 +94,7 @@ func from_dict(data: Dictionary) -> void:
 		next_lid = 2
 	stores = data.get("stores", {})
 	market_info = data.get("market_info", {})
+	broker_state = data.get("broker_state", {})
 	city_econ = data.get("city_econ", {})
 	city_events = data.get("city_events", {})
 	ad_campaigns = data.get("ad_campaigns", {})
