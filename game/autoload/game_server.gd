@@ -1087,6 +1087,13 @@ func effective_ingredient_cost(city_id: String = "") -> int:
 		FranchiseState.city_events, city_id))
 
 
+## 도시의 오늘 임대료 — 도시 경제 비용 배율 반영 (§8.1). 정산·지도 표시 공용.
+func current_rent(city_id: String) -> int:
+	var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
+	return int(roundf(city.rent_per_day
+		* CityEconomy.cost_mult(FranchiseState.city_econ, city_id)))
+
+
 ## 준비 단계 재료 주문 — 즉시 구매, 마감 시 잔여분 폐기 (§21.1)
 @rpc("any_peer", "call_local", "reliable")
 func request_buy_stock(qty: int) -> void:
@@ -1313,11 +1320,13 @@ var job_candidates: Array[Dictionary] = []
 const CANDIDATES_PER_DAY: int = 3
 
 
-## 서버 전용: 채용 후보 갱신·브로드캐스트
+## 서버 전용: 채용 후보 갱신·브로드캐스트.
+## 제시 급여·채용비는 전 도시 평균 물가를 따른다 (§8.1) — 채용 후엔 고정 (§10.2).
 func server_refresh_candidates() -> void:
 	assert(is_server())
 	_apply_candidates.rpc(EmployeeRoster.generate_candidates(
-		CANDIDATES_PER_DAY, market_rng))
+		CANDIDATES_PER_DAY, market_rng,
+		CityEconomy.avg_cost_mult(FranchiseState.city_econ)))
 
 
 ## 후보 채용 (준비 단계, §5.1). 스탯은 후보 생성 시점에 이미 고정 (§10.2).
@@ -1978,10 +1987,10 @@ func on_service_time_over() -> void:
 		offline_revenue += int(_bundle_staff_count(bundle) * eff
 			* OFFLINE_REVENUE_PER_STAFF)
 		wages += _bundle_wages(bundle)
-	# 전 매장 임대료 (§6.6)
+	# 전 매장 임대료 (§6.6) — 도시 경제에 따라 변동 (§8.1)
 	var rent: int = 0
 	for city_id: String in opened_city_ids():
-		rent += (Defs.get_def(StringName(city_id)) as CityDef).rent_per_day
+		rent += current_rent(city_id)
 	# 만기 도래 대출 (§9): 원금+만기 이자 일괄 납부, 자금 부족 시 연체 전환
 	var money_left: int = FranchiseState.money + offline_revenue \
 		- wages - interest - rent

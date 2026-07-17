@@ -32,6 +32,16 @@ func test_candidate_fields_valid() -> void:
 		assert_ne(String(c["name"]), "")
 
 
+func test_candidate_wage_mult() -> void:
+	# 경제 물가 배율이 제시 급여·채용비에 반영된다 (§8.1)
+	for i in range(20):
+		var c: Dictionary = EmployeeRoster.generate_candidate(rng, 1.2, 2.5, 1.2)
+		var grade_row: Dictionary = EmployeeRoster.GRADES[String(c["grade"])]
+		assert_eq(int(c["wage"]), int(roundf(float(grade_row["wage"]) * 1.2)))
+		assert_eq(int(c["hire_cost"]),
+			int(roundf(float(grade_row["hire_cost"]) * 1.2)))
+
+
 func test_candidate_role_fixed() -> void:
 	# 후보 생성 시 역할이 무작위 고정되고, def_id가 역할과 일치한다 (§10.1)
 	var seen_roles: Dictionary = {}

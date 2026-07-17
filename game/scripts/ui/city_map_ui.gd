@@ -100,15 +100,16 @@ func _make_row(city: CityDef) -> HBoxContainer:
 	var info: Label = Label.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_font_size_override("font_size", 11)
+	var rent_today: int = GameServer.current_rent(city_id)
 	if active:
 		info.text = "%s  [현재 매장]  임대료 %d/일" % [
-			city.display_name_ko, city.rent_per_day]
+			city.display_name_ko, rent_today]
 	elif opened:
 		info.text = "%s  [영업 중]  임대료 %d/일" % [
-			city.display_name_ko, city.rent_per_day]
+			city.display_name_ko, rent_today]
 	else:
 		info.text = "%s  개설 %d원 · 임대료 %d/일" % [
-			city.display_name_ko, city.entry_cost, city.rent_per_day]
+			city.display_name_ko, city.entry_cost, rent_today]
 	if partner_here:
 		info.text += "  [동료]"
 	# 경제 이벤트는 공개 정보 (§7.1) — 시장 조사 없이 표시

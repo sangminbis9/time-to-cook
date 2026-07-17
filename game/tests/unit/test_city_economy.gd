@@ -69,6 +69,21 @@ func test_report_reflects_mult() -> void:
 		"보고서 수요에 변동 배율 반영 (§7.5 스냅샷)")
 
 
+func test_cost_mult_half_of_demand_swing() -> void:
+	# 비용 배율 (§8.1 급여·임대료): 수요 변동의 절반만 물가에 반영
+	assert_eq(CityEconomy.cost_mult({}, "city.korea.incheon"), 1.0, "중립")
+	assert_almost_eq(CityEconomy.cost_mult(
+		{"city.korea.incheon": 1.4}, "city.korea.incheon"), 1.2, 0.001, "호황 +40%→+20%")
+	assert_almost_eq(CityEconomy.cost_mult(
+		{"city.korea.incheon": 0.6}, "city.korea.incheon"), 0.8, 0.001, "불황 -40%→-20%")
+
+
+func test_avg_cost_mult() -> void:
+	assert_eq(CityEconomy.avg_cost_mult({}), 1.0, "경제 기록 없으면 중립")
+	var econ: Dictionary = {"city.korea.incheon": 1.4, "city.korea.seoul": 0.6}
+	assert_almost_eq(CityEconomy.avg_cost_mult(econ), 1.0, 0.001, "(1.2+0.8)/2")
+
+
 func test_ad_tick_and_expiry() -> void:
 	# 광고 (§8.3): 매일 잔여 일수 감소, 0이 되면 만료
 	var ads: Dictionary = {"city.korea.incheon": {"ad_id": "flyer", "days_left": 2}}

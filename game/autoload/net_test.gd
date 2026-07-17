@@ -880,6 +880,12 @@ func _scenario_dynamic_economy() -> void:
 		"일일 드리프트: 인천 배율 기록")
 	_check(mult >= CityEconomy.MULT_MIN and mult <= CityEconomy.MULT_MAX,
 		"배율 범위 내 (%.3f)" % mult)
+	# 호황 강제 → 임대료 변동 (§8.1 비용 연동, 서버 상태 직접 설정 — 솔로)
+	FranchiseState.city_econ["city.korea.incheon"] = 1.4
+	_check(GameServer.current_rent("city.korea.incheon") == 2400,
+		"호황 1.4: 임대료 2000→2400 (실제 %d)"
+		% GameServer.current_rent("city.korea.incheon"))
+	var money_before: int = FranchiseState.money
 	# 2일차: 가격 20000 → 수용률 0 → 주문 없음 (§6.6 가격 민감도)
 	GameServer.request_set_price.rpc_id(1, &"recipe.fried_dakgangjeong", 20000)
 	await _sleep(0.2)
@@ -888,6 +894,8 @@ func _scenario_dynamic_economy() -> void:
 		return GameClock.phase == GameClock.Phase.SETTLEMENT)
 	var spawned_day2: int = GameServer.orders.next_oid - 1 - spawned_day1
 	_check(spawned_day2 == 0, "폭리 가격: 주문 0건 (실제 %d건)" % spawned_day2)
+	_check(FranchiseState.money == money_before - 2400,
+		"정산에 변동 임대료 반영 (실제 %d)" % FranchiseState.money)
 	_finish(_all_passed(), "")
 
 

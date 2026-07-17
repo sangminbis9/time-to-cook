@@ -62,8 +62,11 @@ static func random_grade(rng: RandomNumberGenerator) -> String:
 
 
 ## 채용 후보 1명 생성 — 모든 수치가 이 시점에 고정된다.
+## wage_mult: 경제 상황에 따른 인건비 배율 (§8.1) — 제시 급여·채용비에만 반영,
+## 채용 후에는 §10.2대로 영구 고정.
 static func generate_candidate(rng: RandomNumberGenerator,
-		base_work_interval: float = 1.2, base_speed: float = 2.5) -> Dictionary:
+		base_work_interval: float = 1.2, base_speed: float = 2.5,
+		wage_mult: float = 1.0) -> Dictionary:
 	var grade: String = random_grade(rng)
 	var grade_row: Dictionary = GRADES[grade]
 	var trait_names: Array = TRAITS.keys()
@@ -82,8 +85,8 @@ static func generate_candidate(rng: RandomNumberGenerator,
 		"def_id": String(role_row["def_id"]),
 		"grade": grade,
 		"trait": trait_name,
-		"wage": int(grade_row["wage"]),
-		"hire_cost": int(grade_row["hire_cost"]),
+		"wage": int(roundf(float(grade_row["wage"]) * wage_mult)),
+		"hire_cost": int(roundf(float(grade_row["hire_cost"]) * wage_mult)),
 		"min_days": int(grade_row["min_days"]),
 		"work_interval": snappedf(base_work_interval * work_mult, 0.01),
 		"move_speed": snappedf(
@@ -94,10 +97,10 @@ static func generate_candidate(rng: RandomNumberGenerator,
 
 
 static func generate_candidates(count: int,
-		rng: RandomNumberGenerator) -> Array[Dictionary]:
+		rng: RandomNumberGenerator, wage_mult: float = 1.0) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for i in range(count):
-		result.append(generate_candidate(rng))
+		result.append(generate_candidate(rng, 1.2, 2.5, wage_mult))
 	return result
 
 

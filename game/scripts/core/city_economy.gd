@@ -36,6 +36,27 @@ static func effective_demand(city: CityDef, mult: float,
 	return city.demand * mult * event_demand / (0.5 + 0.5 * city.competition)
 
 
+# ── 비용 변동 (§8.1 영향 대상: 급여·임대료) ─────────────────────────
+## 수요 변동의 절반이 물가(임대료·인건비)에 반영된다 — 호황이면 비용도 상승.
+
+const COST_BLEND: float = 0.5
+
+
+## 도시의 비용 배율. 임대료는 도시별로 이 배율을 곱한다.
+static func cost_mult(econ: Dictionary, city_id: String) -> float:
+	return 1.0 + (demand_mult(econ, city_id) - 1.0) * COST_BLEND
+
+
+## 전 도시 평균 비용 배율 — 채용 후보 급여처럼 도시에 묶이지 않는 물가에 사용.
+static func avg_cost_mult(econ: Dictionary) -> float:
+	if econ.is_empty():
+		return 1.0
+	var total: float = 0.0
+	for city_id: String in econ.keys():
+		total += cost_mult(econ, city_id)
+	return total / econ.size()
+
+
 # ── 광고 (§8.3) ─────────────────────────────────────────────────────
 ## 광고는 수요를 증폭할 뿐 — 처리 능력 초과·재료 부족은 구제하지 않는다.
 
