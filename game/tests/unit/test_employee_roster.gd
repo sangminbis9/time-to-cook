@@ -32,6 +32,37 @@ func test_candidate_fields_valid() -> void:
 		assert_ne(String(c["name"]), "")
 
 
+func test_candidate_role_fixed() -> void:
+	# 후보 생성 시 역할이 무작위 고정되고, def_id가 역할과 일치한다 (§10.1)
+	var seen_roles: Dictionary = {}
+	for i in range(50):
+		var c: Dictionary = EmployeeRoster.generate_candidate(rng)
+		var matched: bool = false
+		for row: Dictionary in EmployeeRoster.ROLES:
+			if String(row["role"]) == String(c["role"]):
+				assert_eq(String(c["def_id"]), String(row["def_id"]),
+					"역할과 정의 ID 일치")
+				matched = true
+		assert_true(matched, "알려진 역할만 배출")
+		seen_roles[String(c["role"])] = true
+	assert_eq(seen_roles.size(), EmployeeRoster.ROLES.size(),
+		"50회 표본에 세 역할 모두 등장")
+
+
+func test_candidate_sick_chance_from_trait() -> void:
+	# 질병 확률은 특성이 결정 (§10.4): 병약함 > 기본 > 성실함
+	assert_eq(float((EmployeeRoster.TRAITS["병약함"] as Dictionary)["sick_chance"]),
+		0.12)
+	assert_eq(float((EmployeeRoster.TRAITS["성실함"] as Dictionary)["sick_chance"]),
+		0.01)
+	for i in range(30):
+		var c: Dictionary = EmployeeRoster.generate_candidate(rng)
+		var trait_row: Dictionary = EmployeeRoster.TRAITS[String(c["trait"])]
+		var expected: float = float(trait_row.get(
+			"sick_chance", EmployeeRoster.BASE_SICK_CHANCE))
+		assert_eq(float(c["sick_chance"]), expected, "특성과 질병 확률 일치")
+
+
 func test_lazy_trait_slows_work() -> void:
 	# 게으름 특성은 작업 간격 +20% — 같은 등급 기준으로 확인
 	var lazy_row: Dictionary = EmployeeRoster.TRAITS["게으름"]

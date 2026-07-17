@@ -36,6 +36,39 @@ static func effective_demand(city: CityDef, mult: float,
 	return city.demand * mult * event_demand / (0.5 + 0.5 * city.competition)
 
 
+# ── 광고 (§8.3) ─────────────────────────────────────────────────────
+## 광고는 수요를 증폭할 뿐 — 처리 능력 초과·재료 부족은 구제하지 않는다.
+
+## 광고 상품: 비용, 지속(일), 수요 배율
+const AD_PRODUCTS: Dictionary = {
+	"flyer": {"cost": 5000, "days": 3, "demand_factor": 1.3, "label": "전단지"},
+	"local_tv": {"cost": 20000, "days": 5,
+		"demand_factor": 1.6, "label": "지역 방송"},
+}
+
+## 활성 캠페인 상태: city_id → {"ad_id": String, "days_left": int}
+
+
+## 새 날 진입 시 캠페인 잔여 일수 감소·만료
+static func tick_ads(ads: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+	for city_id: String in ads.keys():
+		var active: Dictionary = ads[city_id]
+		var days_left: int = int(active.get("days_left", 0)) - 1
+		if days_left > 0:
+			result[city_id] = {"ad_id": active["ad_id"], "days_left": days_left}
+	return result
+
+
+## 도시의 광고 수요 배율 (없으면 1.0)
+static func ad_demand_factor(ads: Dictionary, city_id: String) -> float:
+	if not ads.has(city_id):
+		return 1.0
+	var ad_id: String = String((ads[city_id] as Dictionary).get("ad_id", ""))
+	var product: Dictionary = AD_PRODUCTS.get(ad_id, {})
+	return float(product.get("demand_factor", 1.0))
+
+
 # ── 급격 경제 이벤트 (§8.1 후반, §23.2) ─────────────────────────────
 
 ## 하루 이벤트 발생 확률 (도시당)

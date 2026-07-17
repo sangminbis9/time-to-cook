@@ -15,10 +15,16 @@ const FAIL_MESSAGES: Dictionary = {
 	"not_storable": "이 아이템은 냉장고에 넣을 수 없습니다",
 	"employee_working": "직원이 작업 중입니다",
 	"not_enough_money": "자금이 부족합니다",
-	"loan_active": "이미 대출이 있습니다",
+	"loan_limit": "대출은 최대 3건까지입니다",
+	"loan_overdue": "연체 중에는 대출을 받을 수 없습니다",
 	"market_scammed": "정보상에게 사기를 당했습니다!",
 	"station_on_fire": "불이 붙었습니다! J로 진압하세요",
 	"invalid_spot": "그 자리에는 놓을 수 없습니다",
+	"role_taken": "이미 같은 역할의 직원이 있습니다",
+	"already_owned": "이미 보유하고 있습니다",
+	"ad_active": "이미 광고가 진행 중입니다",
+	"skill_cooldown": "스킬이 아직 준비되지 않았습니다",
+	"upgrade_max": "이미 최대 업그레이드입니다",
 }
 const TOAST_SECONDS: float = 2.0
 
@@ -163,6 +169,17 @@ func _refresh_status() -> void:
 			- GameClock.service_elapsed))
 		text += "  %d:%02d" % [remaining / 60, remaining % 60]
 		text += "  재료 %d" % GameServer.ingredient_stock
+		# 액티브 스킬 상태 (§11.4)
+		var character: CharacterDef = GameServer.character_of(_local_peer())
+		var skill: Dictionary = GameServer.skill_states.get(_local_peer(), {})
+		if GameServer.skill_active(_local_peer()):
+			text += "  ✦%s %d초" % [character.skill_name_ko,
+				ceili(float(skill["until"]) - GameClock.service_elapsed)]
+		elif GameClock.service_elapsed < float(skill.get("cooldown_until", 0.0)):
+			text += "  스킬 대기 %d초" % ceili(
+				float(skill["cooldown_until"]) - GameClock.service_elapsed)
+		else:
+			text += "  L: %s" % character.skill_name_ko
 	_status.text = text
 
 
@@ -267,6 +284,14 @@ func _refresh_event_banner() -> void:
 		"blackout":
 			_event_banner.text = "⚠ 정전! 냉장고 옆 차단기를 J로 복구하세요"
 			_event_banner.visible = true
+		"leak":
+			_event_banner.text = "⚠ 누수 발생! 젖은 설비에 J 연타 (%d/%d)" % [
+				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
+			_event_banner.visible = true
+		"slippery":
+			_event_banner.text = "⚠ 바닥이 미끄럽습니다! 엎지른 곳에 J 연타 (%d/%d)" % [
+				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
+			_event_banner.visible = true
 		_:
 			_event_banner.visible = false
 
@@ -302,6 +327,10 @@ func _on_day_settled(summary: Dictionary) -> void:
 		text += "\n임대료  -%d원" % int(summary["rent"])
 	if int(summary.get("interest", 0)) > 0:
 		text += "\n대출 이자  -%d원" % int(summary["interest"])
+	if int(summary.get("maturity", 0)) > 0:
+		text += "\n대출 만기 상환  -%d원" % int(summary["maturity"])
+	if LoanBook.has_overdue(FranchiseState.loans):
+		text += "\n⚠ 대출 연체 — 이자 가산·신규 대출 제한"
 	text += "\n폐기  %d개" % int(summary.get("disposed", 0))
 	if int(summary.get("stock_wasted", 0)) > 0:
 		text += "\n잔여 재료 폐기  %d개" % int(summary["stock_wasted"])
@@ -328,6 +357,7 @@ func _build_prep_menu() -> void:
 	_menu_button("매장", func() -> void: _open_popup(StoreEditUi.new()))
 	_menu_button("직원", func() -> void: _open_popup(StaffUi.new()))
 	_menu_button("경영", func() -> void: _open_popup(ManageUi.new()))
+	_menu_button("캐릭터", func() -> void: _open_popup(CharacterUi.new()))
 	_map_button = _menu_button("지도", func() -> void: _open_popup(CityMapUi.new()))
 	GameServer.market_info_changed.connect(_refresh_prep_menu)
 	GameServer.ready_state_changed.connect(_refresh_prep_menu)

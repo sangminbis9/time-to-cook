@@ -3,6 +3,13 @@ extends PanelContainer
 ## 매장 관리 팝업 (준비 단계 전용): 설비 이동·구매 (§15).
 ## 이동/구매를 고르면 팝업을 닫고 매장 씬의 클릭 배치 모드로 넘어간다.
 
+const PREVENTION_LABELS: Dictionary = {
+	"sprinkler": "스프링클러 (화재 예방)",
+	"generator": "발전기 (정전 예방)",
+	"drainage": "배수 시설 (누수 예방)",
+	"antislip": "미끄럼 방지 바닥",
+}
+
 var _rows: VBoxContainer
 
 
@@ -35,6 +42,7 @@ func _ready() -> void:
 	scroll.add_child(_rows)
 
 	GameServer.station_layout_changed.connect(_refresh)
+	GameServer.ready_state_changed.connect(_refresh)  # 예방 설비 구매 반영
 	FranchiseState.money_changed.connect(func(_m: int) -> void: _refresh())
 	GameClock.phase_changed.connect(func(phase: GameClock.Phase) -> void:
 		if phase != GameClock.Phase.PREP:
@@ -91,6 +99,32 @@ func _refresh() -> void:
 		var buy_def: StringName = def_id
 		buy.pressed.connect(func() -> void: _begin("buy", StringName(), buy_def))
 		row.add_child(buy)
+		_rows.add_child(row)
+	_add_header("── 예방 설비 (§23.4) ──")
+	var owned: Dictionary = GameServer.preventions_view()
+	for id: String in GameServer.PREVENTION_PRICES.keys():
+		var price: int = int(GameServer.PREVENTION_PRICES[id])
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var label: Label = Label.new()
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_font_size_override("font_size", 11)
+		label.text = "%s  %d원" % [String(PREVENTION_LABELS.get(id, id)), price]
+		row.add_child(label)
+		if owned.has(id):
+			var badge: Label = Label.new()
+			badge.add_theme_font_size_override("font_size", 11)
+			badge.text = "보유"
+			row.add_child(badge)
+		else:
+			var buy: Button = Button.new()
+			buy.text = "구매"
+			buy.add_theme_font_size_override("font_size", 11)
+			buy.disabled = FranchiseState.money < price
+			var buy_id: String = id
+			buy.pressed.connect(func() -> void:
+				GameServer.request_buy_prevention.rpc_id(1, buy_id))
+			row.add_child(buy)
 		_rows.add_child(row)
 
 

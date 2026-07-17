@@ -7,9 +7,9 @@ set -u
 GODOT="${GODOT:-$HOME/godot/godot}"
 GAME_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULT_DIR="$(mktemp -d)"
-ALL_SCENARIOS=(simultaneous_pickup coop_cook_submit day_loop fridge host_quit employee employee_roster economy multi_store independent_stores store_events station_edit market dynamic_economy econ_events save_write save_load)
+ALL_SCENARIOS=(simultaneous_pickup coop_cook_submit day_loop fridge host_quit employee employee_roster employee_roles staff_transfer economy loans ads multi_store independent_stores city_layouts character_skill store_events prevention sauce_menu station_edit market dynamic_economy econ_events save_write save_load)
 # 솔로 시나리오: 호스트 인스턴스 하나만 필요 (세이브 쓰기→재시작 로드 순서 중요)
-SOLO_SCENARIOS="employee employee_roster economy multi_store store_events station_edit market dynamic_economy econ_events save_write save_load"
+SOLO_SCENARIOS="employee employee_roster employee_roles staff_transfer economy loans ads multi_store city_layouts character_skill store_events prevention sauce_menu station_edit market dynamic_economy econ_events save_write save_load"
 SCENARIOS=("${@:-${ALL_SCENARIOS[@]}}")
 PORT_BASE=17700
 FAILED=0

@@ -42,6 +42,33 @@ func test_spawn_tiles_walkable() -> void:
 		assert_true(layout.is_walkable(layout.spawn_tiles[order]))
 
 
+func test_for_city_tiers_by_entry_cost() -> void:
+	# 도시별 템플릿 (§6.6): 개설비 싼 도시=소형, 비싼 대도시=대형, 그 외=표준
+	assert_eq(StoreLayout.for_city("city.korea.incheon").width, 13, "인천 표준")
+	assert_eq(StoreLayout.for_city("city.korea.busan").width, 13, "부산 표준")
+	assert_eq(StoreLayout.for_city("city.korea.gwangju").width, 12,
+		"광주(개설비 5만) 소형")
+	assert_eq(StoreLayout.for_city("city.korea.seoul").width, 15,
+		"서울(개설비 12만) 대형")
+	assert_eq(StoreLayout.for_city("").width, 13, "미지정은 표준 폴백")
+
+
+func test_all_templates_share_station_keys() -> void:
+	# 직원 고정 경로(d_2·c_4·b_2·c_3 등)가 어느 매장에서든 유효해야 한다
+	var standard: Array = StoreLayout.incheon().stations.keys()
+	standard.sort()
+	for rows: Array[String] in [
+		StoreLayout.COMPACT_SMALL, StoreLayout.WIDE_LARGE,
+	]:
+		var layout: StoreLayout = StoreLayout.parse(rows)
+		var keys: Array = layout.stations.keys()
+		keys.sort()
+		assert_eq(keys, standard, "템플릿 간 설비 키 집합 동일")
+		assert_eq(layout.spawn_tiles.size(), 2, "플레이어 스폰 2개")
+		assert_true(layout.is_walkable(Vector2i(2, 2)),
+			"직원 스폰 칸(2,2)은 어느 템플릿에서도 바닥")
+
+
 func test_unique_station_keys() -> void:
 	var layout: StoreLayout = StoreLayout.incheon()
 	# 같은 종류 설비 여러 개는 f_1, f_2처럼 고유 키를 가진다

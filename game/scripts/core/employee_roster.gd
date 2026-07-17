@@ -16,14 +16,25 @@ const GRADES: Dictionary = {
 const GRADE_WEIGHTS: Dictionary = {"D": 35, "C": 30, "B": 20, "A": 10, "S": 5}
 
 ## 특성 (§10.4 개인 특성이 이벤트 패턴에 영향): 채용 시 1개 고정
-## vacation: 월 휴가일 범위 재정의, work: 작업 간격 배율, speed: 이동 속도 배율
+## vacation: 월 휴가일 범위 재정의, work: 작업 간격 배율, speed: 이동 속도 배율,
+## sick_chance: 일일 질병(결근·조퇴) 확률 재정의 (§10.4)
 const TRAITS: Dictionary = {
-	"성실함": {"vacation_min": 2, "vacation_max": 3},
+	"성실함": {"vacation_min": 2, "vacation_max": 3, "sick_chance": 0.01},
 	"무난함": {},
 	"재빠름": {"speed_mult": 1.3},
 	"게으름": {"work_mult": 1.2},
-	"병약함": {"vacation_min": 6, "vacation_max": 7},
+	"병약함": {"vacation_min": 6, "vacation_max": 7, "sick_chance": 0.12},
 }
+
+## 특성 재정의가 없을 때의 기본 일일 질병 확률
+const BASE_SICK_CHANCE: float = 0.03
+
+## 채용 시장에 나오는 역할 (§10.1 — 후보 생성 시 무작위 고정, 직무 변경 불가)
+const ROLES: Array[Dictionary] = [
+	{"role": "prep", "def_id": "employee.prep.basic", "label": "전처리"},
+	{"role": "cook", "def_id": "employee.cook.basic", "label": "조리"},
+	{"role": "serve", "def_id": "employee.serve.basic", "label": "서빙"},
+]
 
 const SURNAMES: Array[String] = ["김", "이", "박", "최", "정", "한", "오", "윤", "장", "임"]
 const GIVEN: Array[String] = [
@@ -63,9 +74,12 @@ static func generate_candidate(rng: RandomNumberGenerator,
 		* rng.randf_range(0.95, 1.05)
 	var vac_min: int = int(trait_row.get("vacation_min", VACATION_MIN))
 	var vac_max: int = int(trait_row.get("vacation_max", VACATION_MAX))
+	var role_row: Dictionary = ROLES[rng.randi_range(0, ROLES.size() - 1)]
 	return {
 		"name": SURNAMES[rng.randi_range(0, SURNAMES.size() - 1)]
 			+ GIVEN[rng.randi_range(0, GIVEN.size() - 1)],
+		"role": String(role_row["role"]),
+		"def_id": String(role_row["def_id"]),
 		"grade": grade,
 		"trait": trait_name,
 		"wage": int(grade_row["wage"]),
@@ -75,6 +89,7 @@ static func generate_candidate(rng: RandomNumberGenerator,
 		"move_speed": snappedf(
 			base_speed * float(trait_row.get("speed_mult", 1.0)), 0.01),
 		"vacation_per_month": rng.randi_range(vac_min, vac_max),
+		"sick_chance": float(trait_row.get("sick_chance", BASE_SICK_CHANCE)),
 	}
 
 

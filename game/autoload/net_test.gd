@@ -76,6 +76,8 @@ func _run() -> void:
 		# 무작위 매장 이벤트 차단 — 시나리오 결정성 유지 (store_events는 수동 강제)
 		GameServer.event_fire_chance = 0.0
 		GameServer.event_blackout_chance = 0.0
+		GameServer.event_leak_chance = 0.0
+		GameServer.event_slippery_chance = 0.0
 		GameServer.event_burnt_fire_chance = 0.0
 
 	match scenario:
@@ -109,6 +111,22 @@ func _run() -> void:
 			await _scenario_econ_events()
 		"employee_roster":
 			await _scenario_employee_roster()
+		"employee_roles":
+			await _scenario_employee_roles()
+		"prevention":
+			await _scenario_prevention()
+		"sauce_menu":
+			await _scenario_sauce_menu()
+		"loans":
+			await _scenario_loans()
+		"ads":
+			await _scenario_ads()
+		"staff_transfer":
+			await _scenario_staff_transfer()
+		"city_layouts":
+			await _scenario_city_layouts()
+		"character_skill":
+			await _scenario_character_skill()
 		"save_write":
 			await _scenario_save_write()
 		"save_load":
@@ -494,13 +512,11 @@ func _scenario_economy() -> void:
 	GameServer.order_interval_min = 1.0
 	GameServer.order_interval_max = 2.0
 	# 대출 + 가격 4000원 + 재료 10개 주문
-	GameServer.request_take_loan.rpc_id(1)
+	GameServer.request_take_loan.rpc_id(1, "medium")
 	await _sleep(0.2)
 	_check(FranchiseState.money == 60000, "대출 실행 (실제 %d)" % FranchiseState.money)
-	_check(FranchiseState.loan_principal == 50000, "대출 원금 기록")
-	GameServer.request_take_loan.rpc_id(1)
-	await _sleep(0.2)
-	_check(FranchiseState.money == 60000, "중복 대출 거부")
+	_check(FranchiseState.loans.size() == 1
+		and int(FranchiseState.loans[0]["principal"]) == 50000, "대출 원금 기록")
 	GameServer.request_set_price.rpc_id(1, &"recipe.fried_dakgangjeong", 4000)
 	GameServer.request_buy_stock.rpc_id(1, 10)
 	await _sleep(0.2)
@@ -544,9 +560,9 @@ func _scenario_economy() -> void:
 	GameServer.request_ready_toggle.rpc_id(1)
 	await _wait_until(func() -> bool:
 		return GameClock.phase == GameClock.Phase.PREP)
-	GameServer.request_repay_loan.rpc_id(1)
+	GameServer.request_repay_loan.rpc_id(1, int(FranchiseState.loans[0]["lid"]))
 	await _sleep(0.2)
-	_check(FranchiseState.loan_principal == 0, "전액 상환")
+	_check(FranchiseState.loans.is_empty(), "전액 상환")
 	_check(FranchiseState.money == 6000, "상환 후 자금 (실제 %d)"
 		% FranchiseState.money)
 	_finish(_all_passed(), "")
@@ -1003,6 +1019,399 @@ func _scenario_employee_roster() -> void:
 
 
 ## 테스트용 고정 스탯 후보 주입 + 즉시 채용 (기존 시나리오의 결정성 유지)
+## 캐릭터 스킬 (§11, 솔로): 호스트=미트(전처리 전문) — 칼질 패시브 2배,
+## 액티브 중 +2, 업그레이드 구매(공용 자금), 지속 중 재사용 거부.
+func _scenario_character_skill() -> void:
+	FranchiseState.set_money(50000)
+	GameClock.service_length = 30.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	var c: CharacterDef = GameServer.character_of(1)
+	_check(String(c.id) == "char.mint", "호스트 캐릭터 = 미트")
+	# 영구 업그레이드 (§11.5): 1단계 20000원 → 스킬 지속 +3초
+	GameServer.request_buy_char_upgrade.rpc_id(1)
+	await _sleep(0.2)
+	_check(FranchiseState.money == 30000,
+		"업그레이드 1단계 20000 차감 (실제 %d)" % FranchiseState.money)
+	_check(FranchiseState.char_upgrade_level("char.mint") == 1, "레벨 기록")
+	GameServer.request_buy_stock.rpc_id(1, 2)
+	await _sleep(0.2)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	# 패시브 (§11.2): 전처리 전문은 칼질 1회 = 진행 2
+	GameServer.request_station_interact.rpc_id(1, &"i_1", Vector2i(1, 2))
+	GameServer.request_station_interact.rpc_id(1, &"d_1", Vector2i(3, 2))
+	GameServer.request_station_work.rpc_id(1, &"d_1", Vector2i(3, 2))
+	await _sleep(0.2)
+	var board: StationState = GameServer.station(&"d_1")
+	var item: ItemInstance = GameServer.get_item(board.item_iid)
+	_check(item != null and item.cuts_done == 2, "패시브: 칼질 1회 = 진행 2")
+	# 액티브 (§11.4): 사용 중 칼질 1회 = 진행 4 → 총 6 = 손질 완료
+	GameServer.request_use_skill.rpc_id(1)
+	await _sleep(0.1)
+	_check(GameServer.skill_active(1), "스킬 활성")
+	var until: float = float((GameServer.skill_states[1] as Dictionary)["until"])
+	GameServer.request_use_skill.rpc_id(1)  # 지속 중 재사용 → 쿨다운 거부
+	await _sleep(0.1)
+	_check(float((GameServer.skill_states[1] as Dictionary)["until"]) == until,
+		"지속 중 재사용 거부 (§11.4 수동 연장 불가)")
+	GameServer.request_station_work.rpc_id(1, &"d_1", Vector2i(3, 2))
+	await _sleep(0.2)
+	item = GameServer.get_item(board.item_iid)
+	_check(item != null and item.def_id == &"item.cut_chicken",
+		"액티브 보너스로 6회 도달 — 손질 완료")
+	_finish(_all_passed(), "")
+
+
+## 도시별 레이아웃 (§6.6, 솔로): 광주(소형 12×8) 개설·이동 →
+## 레이아웃·설비 좌표가 도시 템플릿을 따르고 파이프라인이 동작한다.
+func _scenario_city_layouts() -> void:
+	FranchiseState.set_money(300000)
+	GameClock.service_length = 20.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	_check(GameServer.layout.width == 13, "인천 표준 13폭")
+	_check(GameServer.layout_of("city.korea.seoul").width == 15,
+		"서울 대형 15폭 (개설 전에도 결정적)")
+	GameServer.request_open_store.rpc_id(1, "city.korea.gwangju")
+	await _sleep(0.2)
+	GameServer.request_travel.rpc_id(1, "city.korea.gwangju")
+	await _sleep(0.3)
+	_check(GameServer.my_city() == "city.korea.gwangju", "광주 이동")
+	_check(GameServer.layout.width == 12 and GameServer.layout.height == 8,
+		"저비용 도시 = 소형 매장 12×8")
+	_check(GameServer.station_tile(&"r_1") == Vector2i(11, 1),
+		"소형 템플릿 냉장고 위치")
+	_check(GameServer.station_tile(&"x_1") == Vector2i(6, 6),
+		"소형 템플릿 제출대 위치")
+	_check(GameServer.grid.walkable.has(Vector2i(10, 6))
+		and not GameServer.grid.walkable.has(Vector2i(12, 6)),
+		"걷기 격자가 소형 크기를 따름")
+	# 소형 매장에서 기본 파이프라인 동작: 재료 지급 → 도마 배치
+	GameServer.request_buy_stock.rpc_id(1, 2)
+	await _sleep(0.2)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	GameServer.request_station_interact.rpc_id(1, &"i_1", Vector2i(1, 2))
+	GameServer.request_station_interact.rpc_id(1, &"d_1", Vector2i(2, 2))
+	await _sleep(0.2)
+	var st: StationState = GameServer.station(&"d_1")
+	_check(st != null and st.item_iid != 0, "소형 매장 조리 파이프라인 동작")
+	_finish(_all_passed(), "")
+
+
+## 재배치·질병 (§10.4/§10.5, 솔로): 직원을 부산 번들로 이적(동일 국가 운송 3000,
+## 계약·eid 유지), 미개설 도시 거부, 병가 강제 시 영업 결근.
+func _scenario_staff_transfer() -> void:
+	FranchiseState.set_money(200000)
+	GameClock.service_length = 4.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	_inject_and_hire_basic()
+	await _sleep(0.2)
+	_check(GameServer.employees.size() == 1, "직원 고용")
+	var eid: int = GameServer.employees.keys()[0]
+	GameServer.request_open_store.rpc_id(1, "city.korea.busan")
+	await _sleep(0.2)
+	# 미개설 도시로 재배치 거부
+	GameServer.request_transfer_employee.rpc_id(1, eid, "city.korea.seoul")
+	await _sleep(0.2)
+	_check(GameServer.employees.size() == 1, "미개설 도시 재배치 거부")
+	var before: int = FranchiseState.money
+	GameServer.request_transfer_employee.rpc_id(1, eid, "city.korea.busan")
+	await _sleep(0.3)
+	_check(GameServer.employees.is_empty(), "재배치 후 현재 매장 비움")
+	_check(FranchiseState.money == before - 3000,
+		"동일 국가 운송비 3000 (실제 %d)" % FranchiseState.money)
+	var bundle: Dictionary = FranchiseState.stores.get("city.korea.busan", {})
+	_check((bundle.get("employees", {}) as Dictionary).size() == 1,
+		"부산 번들에 직원 이적")
+	# 부산으로 이동해 계약 유지 확인
+	GameServer.request_travel.rpc_id(1, "city.korea.busan")
+	await _sleep(0.3)
+	_check(GameServer.employees.size() == 1, "이적 직원 부산 근무")
+	var emp: EmployeeState = GameServer.employees.get(eid)
+	_check(emp != null and emp.display_name == "테스트직원",
+		"eid·계약·이름 유지 (§10.5)")
+	# 병가 강제 → 영업 중 결근, 급여는 정산에서 지급 (§10.4)
+	emp.sick_day = GameClock.day
+	GameServer.request_buy_stock.rpc_id(1, 5)
+	await _sleep(0.2)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	await _sleep(1.5)
+	_check(GameServer.station_employee.is_empty(), "병가: 출근 안 함")
+	_check(emp.carrying_iid == 0, "병가: 작업 없음")
+	_finish(_all_passed(), "")
+
+
+## 광고 (§8.3, 솔로): 집행 → 자금 차감·수요 배율 상승·도시당 1건,
+## 매일 잔여 일수 감소, 만료 후 배율 원복.
+func _scenario_ads() -> void:
+	FranchiseState.set_money(20000)
+	GameClock.service_length = 3.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	var city: String = GameServer.my_city()
+	GameServer.request_buy_ad.rpc_id(1, "flyer")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 15000,
+		"전단지 광고 5000 차감 (실제 %d)" % FranchiseState.money)
+	_check(FranchiseState.ad_campaigns.has(city), "캠페인 기록")
+	_check(CityEconomy.ad_demand_factor(
+		FranchiseState.ad_campaigns, city) > 1.0, "수요 배율 상승")
+	GameServer.request_buy_ad.rpc_id(1, "local_tv")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 15000, "도시당 동시 1건 — 중복 거부")
+	# 하루 경과 → 잔여 일수 감소
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.PREP)
+	_check(int((FranchiseState.ad_campaigns.get(city, {})
+		as Dictionary).get("days_left", 0)) == 2, "하루 경과 — 잔여 2일")
+	# 만료 강제: 잔여 1일로 만든 뒤 하루 경과
+	(FranchiseState.ad_campaigns[city] as Dictionary)["days_left"] = 1
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.PREP)
+	_check(not FranchiseState.ad_campaigns.has(city), "광고 만료")
+	_check(CityEconomy.ad_demand_factor(
+		FranchiseState.ad_campaigns, city) == 1.0, "만료 후 배율 원복")
+	_finish(_all_passed(), "")
+
+
+## 대출 3건·만기 (§9, 솔로): 3건 한도, 중도 상환=원금만, 만기 정산 일괄 납부,
+## 자금 부족 시 연체 전환(이자 가산·신규 대출 제한), 연체 상환=원금+만기 이자.
+func _scenario_loans() -> void:
+	FranchiseState.set_money(10000)
+	GameClock.service_length = 3.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	GameServer.request_take_loan.rpc_id(1, "small")
+	GameServer.request_take_loan.rpc_id(1, "medium")
+	GameServer.request_take_loan.rpc_id(1, "large")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 190000,
+		"대출 3건 실행 +180000 (실제 %d)" % FranchiseState.money)
+	_check(FranchiseState.loans.size() == 3, "활성 대출 3건")
+	GameServer.request_take_loan.rpc_id(1, "small")
+	await _sleep(0.2)
+	_check(FranchiseState.loans.size() == 3, "4건째 거부 (한도 3건)")
+	# 중도 상환: 만기 이자 면제, 원금만
+	GameServer.request_repay_loan.rpc_id(1, int(FranchiseState.loans[2]["lid"]))
+	await _sleep(0.2)
+	_check(FranchiseState.money == 90000,
+		"거액 중도 상환 = 원금 100000만 (실제 %d)" % FranchiseState.money)
+	_check(FranchiseState.loans.size() == 2, "잔여 대출 2건")
+	# 소액을 오늘 만기로 강제 → 정산에서 원금+만기 이자 일괄 납부
+	FranchiseState.loans[0]["due_day"] = GameClock.day
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	# 이자 450+1000, 임대료 2000, 만기 30000+1500
+	_check(FranchiseState.money == 90000 - 1450 - 2000 - 31500,
+		"정산: 이자+임대료+만기 일괄 납부 (실제 %d)" % FranchiseState.money)
+	_check(FranchiseState.loans.size() == 1, "만기 대출 자동 소멸")
+	# 다음 날: 중액 만기 + 자금 고갈 → 연체 전환
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.PREP)
+	FranchiseState.loans[0]["due_day"] = GameClock.day
+	FranchiseState.set_money(1000)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	_check(FranchiseState.loans.size() == 1
+		and bool(FranchiseState.loans[0].get("overdue", false)),
+		"자금 부족 → 연체 전환")
+	# 연체 중 신규 대출 제한 + 연체 상환 = 원금 + 만기 이자
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.PREP)
+	GameServer.request_take_loan.rpc_id(1, "small")
+	await _sleep(0.2)
+	_check(FranchiseState.loans.size() == 1, "연체 중 신규 대출 거부")
+	FranchiseState.set_money(100000)
+	GameServer.request_repay_loan.rpc_id(1, int(FranchiseState.loans[0]["lid"]))
+	await _sleep(0.2)
+	_check(FranchiseState.loans.is_empty(), "연체 대출 상환 완료")
+	_check(FranchiseState.money == 100000 - 54000,
+		"연체 상환 = 원금+만기 이자 8%% (실제 %d)" % FranchiseState.money)
+	_finish(_all_passed(), "")
+
+
+## 양념 메뉴 (§19.1, 솔로): 양념대 구매 → 판매 메뉴 2종으로 확장,
+## 후라이드 완성품을 양념대 K 작업으로 변환 → 설정가로 제출.
+func _scenario_sauce_menu() -> void:
+	FranchiseState.set_money(50000)
+	GameClock.service_length = 40.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	var city: String = GameServer.my_city()
+	_check(GameServer.sellable_recipes(GameServer.live[city]).size() == 1,
+		"양념대 없음 — 판매 메뉴 1종")
+	GameServer.request_buy_station.rpc_id(1, &"station.sauce_table", Vector2i(2, 5))
+	await _sleep(0.2)
+	_check(FranchiseState.money == 42000,
+		"양념대 구매 8000 차감 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.sellable_recipes(GameServer.live[city]).size() == 2,
+		"양념대 보유 — 판매 메뉴 2종")
+	var sauce_key: StringName = GameServer.station_key_at(Vector2i(2, 5))
+	_check(sauce_key != StringName(), "양념대 배치 확인")
+	GameServer.request_set_price.rpc_id(1, &"recipe.sweet_dakgangjeong", 4300)
+	await _sleep(0.2)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	GameServer.server_spawn_order(city, &"recipe.sweet_dakgangjeong")
+	# 후라이드 조리 (economy 시나리오와 동일 경로)
+	GameServer.request_station_interact.rpc_id(1, &"i_1", Vector2i(1, 2))
+	GameServer.request_station_interact.rpc_id(1, &"d_1", Vector2i(3, 2))
+	for i in range(6):
+		GameServer.request_station_work.rpc_id(1, &"d_1", Vector2i(3, 2))
+	GameServer.request_station_interact.rpc_id(1, &"d_1", Vector2i(3, 2))
+	GameServer.request_station_interact.rpc_id(1, &"b_1", Vector2i(6, 2))
+	GameServer.request_station_work.rpc_id(1, &"b_1", Vector2i(6, 2))
+	GameServer.request_station_interact.rpc_id(1, &"b_1", Vector2i(6, 2))
+	GameServer.request_station_interact.rpc_id(1, &"f_1", Vector2i(9, 2))
+	var fryer_def: StationDef = Defs.get_def(&"station.fryer.basic") as StationDef
+	await _wait_until(func() -> bool:
+		var st: StationState = GameServer.station(&"f_1")
+		if st == null or st.item_iid == 0:
+			return false
+		var item: ItemInstance = GameServer.get_item(st.item_iid)
+		return item != null and CookStateMachine.state_for(
+			item.cook_elapsed, fryer_def) == CookStateMachine.State.NORMAL)
+	GameServer.request_station_interact.rpc_id(1, &"f_1", Vector2i(9, 2))
+	await _sleep(0.2)
+	# 양념대에서 K 한 번 → 양념 닭강정
+	GameServer.request_station_interact.rpc_id(1, sauce_key, Vector2i(2, 6))
+	GameServer.request_station_work.rpc_id(1, sauce_key, Vector2i(2, 6))
+	await _sleep(0.2)
+	var sauce_st: StationState = GameServer.station(sauce_key)
+	var sweet: ItemInstance = GameServer.get_item(sauce_st.item_iid)
+	_check(sweet != null and sweet.def_id == &"item.sweet_dakgangjeong",
+		"양념대 K 작업으로 양념 닭강정 변환")
+	GameServer.request_station_interact.rpc_id(1, sauce_key, Vector2i(2, 6))
+	await _sleep(0.2)
+	var before: int = FranchiseState.money
+	GameServer.request_station_interact.rpc_id(1, &"x_1", Vector2i(8, 6))
+	await _sleep(0.3)
+	_check(FranchiseState.money == before + 4300,
+		"양념 메뉴 설정가 4300 제출 (실제 +%d)" % (FranchiseState.money - before))
+	_finish(_all_passed(), "")
+
+
+## 예방 설비 (§23.4, 솔로): 3종 구매 → 해당 이벤트 강제로도 무발생,
+## 미보유 누수는 발생 → 대상 설비 J 연타 3회로 수리. 영업 중 구매 거부.
+func _scenario_prevention() -> void:
+	FranchiseState.set_money(100000)
+	GameClock.service_length = 30.0
+	GameServer.request_buy_prevention.rpc_id(1, "sprinkler")
+	GameServer.request_buy_prevention.rpc_id(1, "generator")
+	GameServer.request_buy_prevention.rpc_id(1, "antislip")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 62000,
+		"예방 설비 3종 구매 38000원 차감 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.preventions_view().size() == 3, "보유 목록 3종")
+	GameServer.request_buy_prevention.rpc_id(1, "sprinkler")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 62000, "중복 구매 거부")
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	var city: String = GameServer.my_city()
+	# 예방된 이벤트는 강제로도 발생하지 않는다
+	GameServer.server_start_store_event(city, "fire")
+	GameServer.server_start_store_event(city, "blackout")
+	GameServer.server_start_store_event(city, "slippery")
+	await _sleep(0.2)
+	_check(GameServer.current_store_event().is_empty(), "예방 설비가 이벤트 차단")
+	# 배수 시설은 없음 — 누수는 발생한다
+	GameServer.server_start_store_event(city, "leak")
+	await _sleep(0.2)
+	var event: Dictionary = GameServer.current_store_event()
+	_check(String(event.get("type", "")) == "leak", "누수 발생")
+	var key: StringName = StringName(String(event.get("station", "")))
+	_check(key != StringName(), "누수 대상 설비 지정")
+	# 영업 중 예방 설비 구매는 거부 (준비 단계 전용)
+	GameServer.request_buy_prevention.rpc_id(1, "drainage")
+	await _sleep(0.2)
+	_check(GameServer.preventions_view().size() == 3, "영업 중 구매 거부")
+	# 대상 설비 J 연타 3회 = 수리 (§23.3)
+	var tile: Vector2i = GameServer.station_tile(key) + Vector2i(0, 1)
+	for i in range(3):
+		GameServer.request_station_interact.rpc_id(1, key, tile)
+		await _sleep(0.1)
+	_check(GameServer.current_store_event().is_empty(), "누수 3회 수리 완료")
+	_finish(_all_passed(), "")
+
+
+## 직원 역할 협업 (§10.1, 솔로): 전처리+조리+서빙 채용 → 주문 1건 →
+## 플레이어 무개입으로 재료→손질→튀김옷→튀김→선반→제출까지 자동 완주.
+func _scenario_employee_roles() -> void:
+	FranchiseState.set_money(100000)
+	GameClock.service_length = 90.0
+	# 추가 주문 스폰 차단 — 주입한 주문 1건만 결정적으로 처리
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	GameServer.job_candidates = [
+		{"name": "전처리테스트", "grade": "A", "trait": "무난함", "wage": 3000,
+			"hire_cost": 5000, "min_days": 0, "work_interval": 0.4,
+			"move_speed": 4.0, "vacation_per_month": 0,
+			"role": "prep", "def_id": "employee.prep.basic"},
+		{"name": "조리테스트", "grade": "A", "trait": "무난함", "wage": 3000,
+			"hire_cost": 5000, "min_days": 0, "work_interval": 0.4,
+			"move_speed": 4.0, "vacation_per_month": 0,
+			"role": "cook", "def_id": "employee.cook.basic"},
+		{"name": "서빙테스트", "grade": "A", "trait": "무난함", "wage": 3000,
+			"hire_cost": 5000, "min_days": 0, "work_interval": 0.4,
+			"move_speed": 4.0, "vacation_per_month": 0,
+			"role": "serve", "def_id": "employee.serve.basic"},
+		{"name": "조리중복", "grade": "A", "trait": "무난함", "wage": 3000,
+			"hire_cost": 5000, "min_days": 0, "work_interval": 0.4,
+			"move_speed": 4.0, "vacation_per_month": 0,
+			"role": "cook", "def_id": "employee.cook.basic"},
+	]
+	for i in range(3):
+		GameServer.request_hire_candidate.rpc_id(1, 0)
+		await _sleep(0.1)
+	_check(GameServer.employees.size() == 3, "역할별 3명 채용 (실제 %d)"
+		% GameServer.employees.size())
+	# 같은 역할(조리) 중복 채용 거부
+	GameServer.request_hire_candidate.rpc_id(1, 0)
+	await _sleep(0.2)
+	_check(GameServer.employees.size() == 3, "중복 역할 채용 거부")
+	_check(GameServer.job_candidates.size() == 1, "거부된 후보는 목록 유지")
+	GameServer.request_buy_stock.rpc_id(1, 3)
+	await _sleep(0.2)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	# 영업 시작 2~5초 후 자동 스폰되는 첫 주문 1건만 사용 (이후는 9999초 간격)
+	await _wait_until(func() -> bool:
+		return not GameServer.orders.active.is_empty())
+	var price: int = FranchiseState.price_of(
+		Defs.get_def(&"recipe.fried_dakgangjeong") as RecipeDef)
+	var start_money: int = FranchiseState.money
+	# 플레이어는 아무것도 하지 않는다 — 세 직원의 자동 파이프라인만으로 제출
+	await _wait_until(func() -> bool:
+		return GameServer.revenue_today >= price)
+	_check(FranchiseState.money == start_money + price,
+		"서빙 제출 매출 반영 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.orders.active.is_empty(), "주문 원자 완료")
+	_finish(_all_passed(), "")
+
+
 func _inject_and_hire_basic() -> void:
 	GameServer.job_candidates = [{
 		"name": "테스트직원", "grade": "D", "trait": "무난함",

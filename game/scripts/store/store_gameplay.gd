@@ -23,8 +23,8 @@ var _lights: Array[PointLight2D] = []
 
 func _ready() -> void:
 	add_to_group("store_scene")  # 배치 모드 진입용 (매장 관리 UI에서 참조)
-	layout = StoreLayout.incheon()
-	GameServer.setup_store(layout)
+	GameServer.setup_store()
+	layout = GameServer.layout
 	_seen_city = GameServer.my_city()
 	_build_tiles()
 	_sync_station_views()
@@ -70,6 +70,8 @@ func _ready() -> void:
 
 
 func _build_tiles() -> void:
+	_floor.clear()
+	_walls.clear()
 	for tile: Vector2i in layout.walkable.keys():
 		var source: int = 0 if (tile.x + tile.y) % 2 == 0 else 1
 		_floor.set_cell(tile, source, Vector2i.ZERO)
@@ -142,16 +144,20 @@ func _spawn_pos(peer_id: int) -> Vector2:
 	return Vector2(spawn_tile * TILE) + Vector2(TILE / 2.0, TILE / 2.0)
 
 
-## 매장 이동(독립 이동) 반영: 내 도시가 바뀌면 스폰 위치로, 다른 도시의
-## 플레이어는 숨긴다 (같은 씬 노드를 공유하되 각자 자기 매장만 그린다).
+## 매장 이동(독립 이동) 반영: 내 도시가 바뀌면 도시 레이아웃으로 지형을
+## 다시 그리고 스폰 위치로, 다른 도시의 플레이어는 숨긴다.
 func _on_world_resync() -> void:
 	var mine: String = GameServer.my_city()
 	if mine != _seen_city:
 		_seen_city = mine
-		var me: Node2D = _players.get_node_or_null(
-			str(multiplayer.get_unique_id())) as Node2D
+		layout = GameServer.layout  # 도시별 레이아웃 (§6.6)
+		_build_tiles()
+		_rebuild_lights()
+		var me: PlayerController = _players.get_node_or_null(
+			str(multiplayer.get_unique_id())) as PlayerController
 		if me != null:
 			me.position = _spawn_pos(multiplayer.get_unique_id())
+			me.refresh_camera_limits()
 	_refresh_player_visibility()
 
 
@@ -160,6 +166,14 @@ func _refresh_player_visibility() -> void:
 	for child: Node in _players.get_children():
 		(child as Node2D).visible = \
 			GameServer.city_of_peer(int(String(child.name))) == mine
+
+
+## 매장 크기가 바뀌면 조명 배치도 갱신
+func _rebuild_lights() -> void:
+	for light: PointLight2D in _lights:
+		light.queue_free()
+	_lights.clear()
+	_build_lights()
 
 
 ## 천장 조명 — 매장 폭을 따라 따뜻한 광원을 고르게 배치

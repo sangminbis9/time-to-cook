@@ -67,3 +67,21 @@ func test_report_reflects_mult() -> void:
 	var values: Dictionary = MarketReport.build_values(incheon, advisor, rng, 1.2)
 	assert_almost_eq(float(values["demand"]), incheon.demand * 1.2, 0.001,
 		"보고서 수요에 변동 배율 반영 (§7.5 스냅샷)")
+
+
+func test_ad_tick_and_expiry() -> void:
+	# 광고 (§8.3): 매일 잔여 일수 감소, 0이 되면 만료
+	var ads: Dictionary = {"city.korea.incheon": {"ad_id": "flyer", "days_left": 2}}
+	ads = CityEconomy.tick_ads(ads)
+	assert_eq(int((ads["city.korea.incheon"] as Dictionary)["days_left"]), 1)
+	ads = CityEconomy.tick_ads(ads)
+	assert_false(ads.has("city.korea.incheon"), "만료 후 제거")
+
+
+func test_ad_demand_factor() -> void:
+	var ads: Dictionary = {"city.korea.incheon": {"ad_id": "local_tv", "days_left": 5}}
+	assert_almost_eq(
+		CityEconomy.ad_demand_factor(ads, "city.korea.incheon"), 1.6, 0.001)
+	assert_eq(CityEconomy.ad_demand_factor(ads, "city.korea.seoul"), 1.0,
+		"광고는 집행 도시에만 적용")
+	assert_eq(CityEconomy.ad_demand_factor({}, "city.korea.incheon"), 1.0)

@@ -44,6 +44,11 @@ func _ready() -> void:
 		_sprite.texture = load("res://assets/sprites/player_apricot.png")
 
 
+## 매장 이동으로 레이아웃이 바뀌면 다시 계산 (도시별 크기 §6.6)
+func refresh_camera_limits() -> void:
+	_setup_camera_limits()
+
+
 ## 맵이 뷰포트보다 작은 축은 카메라를 중앙 고정, 큰 축은 맵 경계에서 클램프
 func _setup_camera_limits() -> void:
 	if GameServer.layout == null:
@@ -81,6 +86,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		GameServer.request_drop.rpc_id(1, tile_pos(), facing)
 	elif event.is_action_pressed("ready_toggle"):
 		GameServer.request_ready_toggle.rpc_id(1)
+	elif event.is_action_pressed("skill"):
+		GameServer.request_use_skill.rpc_id(1)
 	elif event.is_action_pressed("slot_1"):
 		GameServer.request_select_slot.rpc_id(1, 0)
 	elif event.is_action_pressed("slot_2"):
@@ -112,7 +119,16 @@ func _process_movement(delta: float) -> void:
 	var input_dir: Vector2 = Input.get_vector(
 		"move_left", "move_right", "move_up", "move_down")
 	if input_dir != Vector2.ZERO:
-		var motion: Vector2 = input_dir.normalized() * SPEED * delta
+		var speed: float = SPEED
+		# 미끄러운 바닥 (§23.1): 청소 전까지 이동 감속
+		if String(GameServer.current_store_event().get("type", "")) == "slippery":
+			speed *= 0.6
+		# 캐릭터 패시브·액티브 스킬 (§11 — 자기 행동에만 영향)
+		var character: CharacterDef = GameServer.character_of(peer_id())
+		speed *= character.move_speed_mult
+		if GameServer.skill_active(peer_id()):
+			speed *= character.skill_speed_mult
+		var motion: Vector2 = input_dir.normalized() * speed * delta
 		_try_move(Vector2(motion.x, 0))
 		_try_move(Vector2(0, motion.y))
 		_update_facing(input_dir)
@@ -174,10 +190,15 @@ func _prompt_for(target: Dictionary) -> String:
 	var st: StationState = GameServer.station(target["station_key"])
 	# 매장 이벤트 대응 안내 (§23.3)
 	var event: Dictionary = GameServer.current_store_event()
-	if String(event.get("type", "")) == "fire" \
-			and String(target["station_key"]) == String(event.get("station", "")):
-		return "J: 진압!"
-	if String(event.get("type", "")) == "blackout" and st != null \
+	var etype: String = String(event.get("type", ""))
+	if String(target["station_key"]) == String(event.get("station", "")):
+		if etype == "fire":
+			return "J: 진압!"
+		if etype == "leak":
+			return "J: 수리"
+		if etype == "slippery":
+			return "J: 청소"
+	if etype == "blackout" and st != null \
 			and st.get_def().kind == StationDef.Kind.FRIDGE:
 		return "J: 차단기 복구"
 	if st == null or st.is_empty():

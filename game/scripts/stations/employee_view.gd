@@ -24,7 +24,7 @@ func setup(p_eid: int) -> void:
 	_sprite = Sprite2D.new()
 	_sprite.texture = load("res://assets/sprites/player_mint.png")
 	_sprite.hframes = 8
-	_sprite.modulate = Color(0.85, 0.85, 0.95)  # 직원 구분 톤
+	_sprite.modulate = _role_tint()
 	_sprite.position = Vector2(0, -8)  # 확대해도 발 위치 유지
 	_sprite.scale = Vector2(1.5, 1.5)
 	add_child(_sprite)
@@ -34,6 +34,18 @@ func setup(p_eid: int) -> void:
 	add_child(_item_sprite)
 	GameServer.employee_changed.connect(_on_changed)
 	_on_changed(eid)
+
+
+## 역할별 구분 톤 (§10.1): 전처리=푸른빛, 조리=주황빛, 서빙=초록빛
+func _role_tint() -> Color:
+	var emp: EmployeeState = GameServer.employees.get(eid)
+	if emp != null:
+		match emp.role():
+			EmployeeDef.Role.COOK:
+				return Color(1.0, 0.85, 0.75)
+			EmployeeDef.Role.SERVE:
+				return Color(0.8, 0.95, 0.8)
+	return Color(0.85, 0.85, 0.95)
 
 
 func _on_changed(changed_eid: int) -> void:

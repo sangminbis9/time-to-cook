@@ -94,11 +94,18 @@ func _process(delta: float) -> void:
 
 
 func _refresh() -> void:
-	# 화재 설비는 붉게 표시 (§23.1)
+	# 이벤트 대상 설비 표시 (§23.1): 화재=붉게, 누수=푸르게, 미끄러움=청록
 	var event: Dictionary = GameServer.current_store_event()
-	var on_fire: bool = String(event.get("type", "")) == "fire" \
-		and String(event.get("station", "")) == String(station_key)
-	_sprite.modulate = Color(1.7, 0.65, 0.45) if on_fire else Color.WHITE
+	var etype: String = String(event.get("type", ""))
+	var is_target: bool = String(event.get("station", "")) == String(station_key)
+	if is_target and etype == "fire":
+		_sprite.modulate = Color(1.7, 0.65, 0.45)
+	elif is_target and etype == "leak":
+		_sprite.modulate = Color(0.6, 0.8, 1.6)
+	elif is_target and etype == "slippery":
+		_sprite.modulate = Color(0.7, 1.3, 1.1)
+	else:
+		_sprite.modulate = Color.WHITE
 	if _glow != null:
 		_glow.enabled = String(event.get("type", "")) != "blackout"
 	var st: StationState = GameServer.station(station_key)

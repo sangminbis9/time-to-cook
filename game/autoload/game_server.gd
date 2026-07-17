@@ -74,14 +74,44 @@ var order_interval_max: float = 14.0
 ## 매장 이벤트 (§23.1) 발생 확률 — 매일 영업 시작 시 매장별 1회 판정
 var event_fire_chance: float = 0.10
 var event_blackout_chance: float = 0.10
+var event_leak_chance: float = 0.08
+var event_slippery_chance: float = 0.08
 ## 튀김기에서 음식이 타면 이 확률로 화재 (대응 가능한 원인 — 태우지 말 것)
 var event_burnt_fire_chance: float = 0.35
-## 화재 진압에 필요한 상호작용(J) 횟수 (§23.3 소화기)
+## 이벤트 대응에 필요한 상호작용(J) 횟수 (§23.3 소화기·수리·청소)
 const EXTINGUISH_HITS: int = 3
+
+## 예방 설비 가격 (§23.4 — 준비 단계 구매, 매장 귀속)
+const PREVENTION_PRICES: Dictionary = {
+	"sprinkler": 15000,
+	"generator": 15000,
+	"drainage": 8000,
+	"antislip": 8000,
+}
+## 이벤트 type → 이를 원천 차단하는 예방 설비 id
+const PREVENTION_BLOCKS: Dictionary = {
+	"fire": "sprinkler",
+	"blackout": "generator",
+	"leak": "drainage",
+	"slippery": "antislip",
+}
 ## 오늘 예정된 매장 이벤트 (서버 전용 런타임): city_id → {"type", "at"(영업 경과초)}
 var _scheduled_events: Dictionary = {}
 
-var layout: StoreLayout
+## 도시별 매장 레이아웃 (결정적 — 동기화 불필요, 지연 파싱 캐시)
+var _layout_cache: Dictionary = {}
+
+## 내 도시의 레이아웃 (뷰·카메라용 프록시)
+var layout: StoreLayout:
+	get:
+		return layout_of(my_city())
+
+
+func layout_of(city_id: String) -> StoreLayout:
+	if not _layout_cache.has(city_id):
+		_layout_cache[city_id] = StoreLayout.for_city(city_id)
+	return _layout_cache[city_id]
+
 
 ## 프록시 실패 대비 빈 매장 (씬 로드 전 뷰 접근 등)
 var _fallback_store: LiveStore = LiveStore.new()
@@ -211,14 +241,13 @@ func placements_view() -> Dictionary:
 
 # ── 서버 측 셋업 (매장 로드 시) ─────────────────────────────────────
 
-## 모든 피어가 동일한 레이아웃을 로컬 적용 (지형은 결정적 — 동기화 불필요).
+## 모든 피어가 동일한 레이아웃을 로컬 적용 (도시별로 결정적 — 동기화 불필요).
 ## 시작 도시의 라이브 매장을 만들고 로컬 피어를 배치한다.
 ## 클라이언트는 이후 서버 스냅샷으로 덮어써진다.
-func setup_store(p_layout: StoreLayout) -> void:
-	layout = p_layout
+func setup_store() -> void:
 	live.clear()
 	peer_city.clear()
-	live[START_CITY] = LiveStore.create(p_layout)
+	live[START_CITY] = LiveStore.create(layout_of(START_CITY))
 	peer_city[multiplayer.get_unique_id()] = START_CITY
 
 
@@ -342,7 +371,9 @@ func request_station_interact(key: StringName, player_tile: Vector2i) -> void:
 	# 매장 이벤트 대응 (§23.3): 불붙은 설비에 J = 진압, 정전 중 냉장고에 J = 차단기
 	if not s.event.is_empty():
 		var etype: String = String(s.event.get("type", ""))
-		if etype == "fire" and String(key) == String(s.event.get("station", "")):
+		# 진압(화재)·수리(누수)·청소(미끄러움): 대상 설비에 J 연타 (§23.3)
+		if (etype == "fire" or etype == "leak" or etype == "slippery") \
+				and String(key) == String(s.event.get("station", "")):
 			var hits: int = int(s.event.get("hits", 0)) + 1
 			if hits >= EXTINGUISH_HITS:
 				_apply_store_event.rpc(city_id, {})
@@ -406,7 +437,7 @@ func request_station_work(key: StringName, player_tile: Vector2i) -> void:
 		StationDef.Kind.CUTTING_BOARD:
 			if not def.work_output.has(item.def_id):
 				return  # 이미 손질 완료된 아이템
-			item.cuts_done += 1
+			item.cuts_done += _cut_amount(peer)
 			if item.cuts_done >= def.required_cuts:
 				item.def_id = StringName(String(def.work_output[item.def_id]))
 			_apply_item_data.rpc(item.to_dict())
@@ -563,22 +594,39 @@ func _tick_order_spawner(city_id: String, s: LiveStore, delta: float) -> void:
 	s.next_order_in -= delta
 	if s.next_order_in > 0.0:
 		return
-	# 동적 경제 (§8.1): 유효 수요가 높을수록 주문이 잦다
+	# 동적 경제 (§8.1): 유효 수요가 높을수록 주문이 잦다 — 광고(§8.3)가 증폭
 	var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
 	var mult: float = CityEconomy.demand_mult(FranchiseState.city_econ, city_id)
 	var event_factor: float = CityEconomy.event_demand_factor(
 		FranchiseState.city_events, city_id)
-	var eff: float = maxf(0.3, CityEconomy.effective_demand(city, mult, event_factor))
+	var ad_factor: float = CityEconomy.ad_demand_factor(
+		FranchiseState.ad_campaigns, city_id)
+	var eff: float = maxf(0.3, CityEconomy.effective_demand(
+		city, mult, event_factor * ad_factor))
 	s.next_order_in = randf_range(order_interval_min, order_interval_max) / eff
 	if s.orders.active.size() >= s.orders.max_active:
 		return
-	# 가격 민감도 (§6.6): 인상분만큼 손님이 발길을 돌린다
-	var recipe: RecipeDef = Defs.get_def(&"recipe.fried_dakgangjeong") as RecipeDef
+	# 판매 가능 메뉴 중 무작위 (§19.1) + 가격 민감도 (§6.6)
+	var menu: Array[RecipeDef] = sellable_recipes(s)
+	var recipe: RecipeDef = menu[market_rng.randi_range(0, menu.size() - 1)]
 	var accept: float = CityEconomy.acceptance(
 		FranchiseState.price_of(recipe), recipe.base_price, city.price_sensitivity)
 	if market_rng.randf() >= accept:
 		return
 	server_spawn_order(city_id, recipe.id)
+
+
+## 이 매장이 제조 가능한 메뉴 (§19.1).
+## 양념 메뉴는 양념대 보유 매장만 — 연구(§20) 대신 설비 구매로 해금 (슬라이스).
+func sellable_recipes(s: LiveStore) -> Array[RecipeDef]:
+	var menu: Array[RecipeDef] = [
+		Defs.get_def(&"recipe.fried_dakgangjeong") as RecipeDef]
+	for key: StringName in s.placements.keys():
+		var entry: Dictionary = s.placements[key]
+		if entry["def_id"] == &"station.sauce_table":
+			menu.append(Defs.get_def(&"recipe.sweet_dakgangjeong") as RecipeDef)
+			break
+	return menu
 
 
 # ── 설비 배치: 이동·구매 (PLAN.md §15/§29 — 준비 단계 전용) ─────────
@@ -589,6 +637,7 @@ const STATION_PRICES: Dictionary = {
 	&"station.cutting_board": 6000,
 	&"station.breading_table": 6000,
 	&"station.fryer.basic": 12000,
+	&"station.sauce_table": 8000,
 }
 
 
@@ -637,8 +686,9 @@ func request_buy_station(def_id: StringName, tile: Vector2i) -> void:
 func _can_place_station(city_id: String, s: LiveStore, tile: Vector2i) -> bool:
 	if not s.grid.can_place_item(tile):
 		return false
-	for order: int in layout.spawn_tiles.keys():
-		if layout.spawn_tiles[order] == tile:
+	var city_layout: StoreLayout = layout_of(city_id)
+	for order: int in city_layout.spawn_tiles.keys():
+		if city_layout.spawn_tiles[order] == tile:
 			return false
 	for node: Node in get_tree().get_nodes_in_group("players"):
 		var player: PlayerController = node as PlayerController
@@ -688,6 +738,9 @@ func server_start_store_event(city_id: String, type: String,
 	var s: LiveStore = live.get(city_id)
 	if s == null or not s.event.is_empty():
 		return
+	# 예방 설비 보유 시 해당 이벤트는 발생하지 않는다 (§23.4)
+	if s.preventions.has(String(PREVENTION_BLOCKS.get(type, ""))):
+		return
 	var event: Dictionary = {"type": type}
 	if type == "fire":
 		if station_key == StringName():
@@ -699,6 +752,14 @@ func server_start_store_event(city_id: String, type: String,
 		var st: StationState = s.stations.get(station_key)
 		if st != null and st.item_iid != 0:
 			event["destroy_iid"] = st.item_iid
+	elif type == "leak" or type == "slippery":
+		# 무작위 설비에 발생 — J 연타로 수리·청소 (§23.3)
+		if station_key == StringName():
+			station_key = _pick_station_key(s)
+		if station_key == StringName():
+			return
+		event["station"] = String(station_key)
+		event["hits"] = 0
 	_apply_store_event.rpc(city_id, event)
 
 
@@ -713,6 +774,16 @@ func _pick_fryer_key(s: LiveStore) -> StringName:
 	return fryers[market_rng.randi_range(0, fryers.size() - 1)]
 
 
+func _pick_station_key(s: LiveStore) -> StringName:
+	var keys: Array[StringName] = []
+	for key: StringName in s.stations.keys():
+		keys.append(key)
+	if keys.is_empty():
+		return StringName()
+	keys.sort()
+	return keys[market_rng.randi_range(0, keys.size() - 1)]
+
+
 ## 서버 전용: 영업 시작 시 매장별 오늘의 이벤트 판정 (사전 경고 없음 슬라이스)
 func _roll_daily_events() -> void:
 	_scheduled_events.clear()
@@ -723,6 +794,12 @@ func _roll_daily_events() -> void:
 			type = "fire"
 		elif roll < event_fire_chance + event_blackout_chance:
 			type = "blackout"
+		elif roll < event_fire_chance + event_blackout_chance \
+				+ event_leak_chance:
+			type = "leak"
+		elif roll < event_fire_chance + event_blackout_chance \
+				+ event_leak_chance + event_slippery_chance:
+			type = "slippery"
 		if type != "":
 			_scheduled_events[city_id] = {"type": type,
 				"at": market_rng.randf_range(0.2, 0.7) * GameClock.service_length}
@@ -735,6 +812,40 @@ func _tick_scheduled_event(city_id: String, s: LiveStore) -> void:
 	_scheduled_events.erase(city_id)
 	if s.event.is_empty():
 		server_start_store_event(city_id, String(sched["type"]))
+
+
+## 예방 설비 구매 (§23.4 — 준비 단계 전용). 보유 시 해당 이벤트 원천 차단.
+@rpc("any_peer", "call_local", "reliable")
+func request_buy_prevention(id: String) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	var city_id: String = city_of_peer(peer)
+	var s: LiveStore = live.get(city_id)
+	if s == null or not PREVENTION_PRICES.has(id):
+		return
+	if s.preventions.has(id):
+		notify_fail.rpc_id(peer, "already_owned")
+		return
+	var price: int = int(PREVENTION_PRICES[id])
+	if FranchiseState.money < price:
+		notify_fail.rpc_id(peer, "not_enough_money")
+		return
+	_apply_prevention.rpc(city_id, id, FranchiseState.money - price)
+
+
+@rpc("authority", "call_local", "reliable")
+func _apply_prevention(city_id: String, id: String, new_money: int) -> void:
+	FranchiseState.set_money(new_money)
+	var s: LiveStore = live.get(city_id)
+	if s != null:
+		s.preventions[id] = true
+	ready_state_changed.emit()  # 준비 팝업 리프레시
+
+
+## 내 매장의 보유 예방 설비 (뷰 전용 — 수정 금지)
+func preventions_view() -> Dictionary:
+	return _local().preventions
 
 
 ## 이벤트 상태 전체 교체 ({} = 해제). 화재 시작 페이로드는 소실 아이템을 포함.
@@ -828,7 +939,7 @@ func request_travel(city_id: String) -> void:
 	if not live.has(city_id):
 		var bundle: Dictionary = FranchiseState.stores.get(city_id, {})
 		FranchiseState.stores.erase(city_id)  # 라이브 매장은 라이브 상태가 원본
-		live[city_id] = _store_from_bundle(bundle)
+		live[city_id] = _store_from_bundle(city_id, bundle)
 	peer_city[peer] = city_id
 	_offline_if_empty(old_city)
 	# 전원 동기화 — 세이브와 동일 직렬화기 재사용 (매장 승격/강등 전파)
@@ -837,8 +948,8 @@ func request_travel(city_id: String) -> void:
 
 
 ## 오프라인 번들 → 라이브 매장 승격. 번들에 귀속된 아이템을 레지스트리에 등록.
-func _store_from_bundle(bundle: Dictionary) -> LiveStore:
-	var s: LiveStore = LiveStore.from_dict(bundle, layout)
+func _store_from_bundle(city_id: String, bundle: Dictionary) -> LiveStore:
+	var s: LiveStore = LiveStore.from_dict(bundle, layout_of(city_id))
 	_rebuild_station_employee(s)
 	var item_dicts: Dictionary = bundle.get("items", {})
 	for key: String in item_dicts.keys():
@@ -877,17 +988,35 @@ func _bundle_of(s: LiveStore) -> Dictionary:
 	return bundle
 
 
+## 직원 위상에서 점유 설비 키를 결정적으로 유도 (§10.6).
+## 이동 중에도 목적지 설비를 선점해 플레이어 끼어들기를 차단한다.
+func _reserved_keys(emp: EmployeeState) -> Array[StringName]:
+	match emp.phase:
+		EmployeeState.Phase.TO_BOX, EmployeeState.Phase.TO_BOARD, \
+		EmployeeState.Phase.CUTTING:
+			return [EMP_BOARD_KEY]
+		EmployeeState.Phase.TO_PICKUP:
+			# 픽업대와 튀김옷 작업대를 함께 선점 — 이동 사이 점거로 인한 교착 방지
+			return [EMP_OUTPUT_KEY, EMP_BREAD_KEY]
+		EmployeeState.Phase.TO_BREAD, EmployeeState.Phase.BREADING:
+			return [EMP_BREAD_KEY]
+		EmployeeState.Phase.TO_FRYER, EmployeeState.Phase.FRYING:
+			if emp.work_station != StringName():
+				return [emp.work_station]
+		EmployeeState.Phase.TO_SHELF, EmployeeState.Phase.TO_SHELF_PICK:
+			return [EMP_SHELF_KEY]
+		_:
+			pass
+	return []
+
+
 ## 설비 점유 맵을 직원 위상에서 결정적으로 재구축 (§10.6)
 func _rebuild_station_employee(s: LiveStore) -> void:
 	s.station_employee.clear()
 	for eid: int in s.employees.keys():
 		var emp: EmployeeState = s.employees[eid]
-		if emp.phase in [
-			EmployeeState.Phase.TO_BOX,
-			EmployeeState.Phase.TO_BOARD,
-			EmployeeState.Phase.CUTTING,
-		]:
-			s.station_employee[EMP_BOARD_KEY] = emp.eid
+		for key: StringName in _reserved_keys(emp):
+			s.station_employee[key] = emp.eid
 
 
 func _bundle_staff_count(bundle: Dictionary) -> int:
@@ -993,37 +1122,151 @@ func request_set_price(recipe_id: StringName, price: int) -> void:
 	})
 
 
-## 대출 (§9 축소판: 1건, 원금 50000, 일일 이자 2% 자동 납부, 전액 중도 상환)
-const LOAN_AMOUNT: int = 50000
-
+## 대출 실행 (§9): 상품 3종, 활성 최대 3건, 연체 중 신규 대출 제한.
 @rpc("any_peer", "call_local", "reliable")
-func request_take_loan() -> void:
+func request_take_loan(product: String) -> void:
 	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
 		return
 	var peer: int = _sender()
-	if FranchiseState.loan_principal > 0:
-		notify_fail.rpc_id(peer, "loan_active")
+	if not LoanBook.PRODUCTS.has(product):
 		return
+	if FranchiseState.loans.size() >= LoanBook.MAX_ACTIVE:
+		notify_fail.rpc_id(peer, "loan_limit")
+		return
+	if LoanBook.has_overdue(FranchiseState.loans):
+		notify_fail.rpc_id(peer, "loan_overdue")
+		return
+	var loan: Dictionary = LoanBook.make_loan(
+		FranchiseState.next_lid, product, GameClock.day)
+	var loans: Array = FranchiseState.loans.duplicate(true)
+	loans.append(loan)
 	_apply_economy.rpc({
-		"money": FranchiseState.money + LOAN_AMOUNT,
-		"loan": LOAN_AMOUNT,
+		"money": FranchiseState.money + int(loan["principal"]),
+		"loans": loans,
+		"next_lid": FranchiseState.next_lid + 1,
 	})
 
 
+## 전액 상환 (§9 부분 상환 불가): 만기 전=원금만, 만기 후(연체 포함)=원금+만기 이자.
 @rpc("any_peer", "call_local", "reliable")
-func request_repay_loan() -> void:
+func request_repay_loan(lid: int) -> void:
 	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
 		return
 	var peer: int = _sender()
-	var principal: int = FranchiseState.loan_principal
-	if principal <= 0:
+	var loans: Array = FranchiseState.loans.duplicate(true)
+	for i in range(loans.size()):
+		var loan: Dictionary = loans[i]
+		if int(loan["lid"]) != lid:
+			continue
+		var amount: int = LoanBook.payoff(loan, GameClock.day)
+		if FranchiseState.money < amount:
+			notify_fail.rpc_id(peer, "not_enough_money")
+			return
+		loans.remove_at(i)
+		_apply_economy.rpc({
+			"money": FranchiseState.money - amount,
+			"loans": loans,
+		})
 		return
-	if FranchiseState.money < principal:
+
+
+# ── 캐릭터·스킬 (PLAN.md §11) ───────────────────────────────────────
+## 슬라이스: 캐릭터 선택 씬 없이 자동 배정 — 호스트=미트(전처리), 게스트=살구(운반).
+## 능력은 해당 캐릭터의 직접 행동에만 영향 (§11.3 — 직원·자동화 매출 무관).
+
+signal skill_changed(peer: int)
+
+## 액티브 스킬 상태 (§11.4): peer → {"until": float, "cooldown_until": float}.
+## service_elapsed 기준이라 준비·정산에서는 자연히 시간이 정지한다.
+var skill_states: Dictionary = {}
+
+
+func character_of(peer: int) -> CharacterDef:
+	var id: StringName = &"char.mint" if peer == 1 else &"char.apricot"
+	return Defs.get_def(id) as CharacterDef
+
+
+func skill_active(peer: int) -> bool:
+	var st: Dictionary = skill_states.get(peer, {})
+	return GameClock.phase == GameClock.Phase.SERVICE \
+		and GameClock.service_elapsed < float(st.get("until", 0.0))
+
+
+## 액티브 스킬 사용 (§11.4): 영업 중 자유 사용, 고정 지속, 종료 후 쿨다운.
+@rpc("any_peer", "call_local", "reliable")
+func request_use_skill() -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.SERVICE:
+		return
+	var peer: int = _sender()
+	var st: Dictionary = skill_states.get(peer, {})
+	if GameClock.service_elapsed < float(st.get("cooldown_until", 0.0)):
+		notify_fail.rpc_id(peer, "skill_cooldown")
+		return
+	var c: CharacterDef = character_of(peer)
+	var duration: float = c.skill_duration + c.upgrade_duration_bonus \
+		* FranchiseState.char_upgrade_level(String(c.id))
+	_apply_skill.rpc(peer, GameClock.service_elapsed + duration,
+		GameClock.service_elapsed + duration + c.skill_cooldown)
+
+
+@rpc("authority", "call_local", "reliable")
+func _apply_skill(peer: int, until: float, cooldown_until: float) -> void:
+	skill_states[peer] = {"until": until, "cooldown_until": cooldown_until}
+	skill_changed.emit(peer)
+
+
+## 칼질 1회 진행량: 전처리 전문 패시브 + 액티브 보너스 (§11.2)
+func _cut_amount(peer: int) -> int:
+	var c: CharacterDef = character_of(peer)
+	var amount: int = c.cut_per_work
+	if skill_active(peer):
+		amount += c.skill_cut_bonus
+	return maxi(1, amount)
+
+
+## 캐릭터 영구 업그레이드 구매 (§11.5): 공용 자금, 환불·재분배 없음.
+@rpc("any_peer", "call_local", "reliable")
+func request_buy_char_upgrade() -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	var c: CharacterDef = character_of(peer)
+	var level: int = FranchiseState.char_upgrade_level(String(c.id))
+	if level >= c.upgrade_costs.size():
+		notify_fail.rpc_id(peer, "upgrade_max")
+		return
+	var cost: int = c.upgrade_costs[level]
+	if FranchiseState.money < cost:
 		notify_fail.rpc_id(peer, "not_enough_money")
 		return
 	_apply_economy.rpc({
-		"money": FranchiseState.money - principal,
-		"loan": 0,
+		"money": FranchiseState.money - cost,
+		"char_upgrade": String(c.id),
+		"char_level": level + 1,
+	})
+
+
+## 광고 집행 (§8.3 — 준비 단계 전용, 자기 매장 도시, 도시당 동시 1건)
+@rpc("any_peer", "call_local", "reliable")
+func request_buy_ad(ad_id: String) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	var city_id: String = city_of_peer(peer)
+	if city_id == "" or not CityEconomy.AD_PRODUCTS.has(ad_id):
+		return
+	if FranchiseState.ad_campaigns.has(city_id):
+		notify_fail.rpc_id(peer, "ad_active")
+		return
+	var product: Dictionary = CityEconomy.AD_PRODUCTS[ad_id]
+	var cost: int = int(product["cost"])
+	if FranchiseState.money < cost:
+		notify_fail.rpc_id(peer, "not_enough_money")
+		return
+	_apply_economy.rpc({
+		"money": FranchiseState.money - cost,
+		"ad_city": city_id,
+		"ad": {"ad_id": ad_id, "days_left": int(product["days"])},
 	})
 
 
@@ -1037,8 +1280,16 @@ func _apply_economy(data: Dictionary) -> void:
 	if data.has("price_recipe"):
 		FranchiseState.menu_prices[String(data["price_recipe"])] = \
 			int(data["price_value"])
-	if data.has("loan"):
-		FranchiseState.loan_principal = int(data["loan"])
+	if data.has("loans"):
+		FranchiseState.loans = (data["loans"] as Array).duplicate(true)
+	if data.has("next_lid"):
+		FranchiseState.next_lid = int(data["next_lid"])
+	if data.has("ad_city"):
+		FranchiseState.ad_campaigns[String(data["ad_city"])] = \
+			(data["ad"] as Dictionary).duplicate(true)
+	if data.has("char_upgrade"):
+		FranchiseState.char_upgrades[String(data["char_upgrade"])] = \
+			int(data["char_level"])
 	if data.has("money"):
 		FranchiseState.set_money(int(data["money"]))
 	ready_state_changed.emit()  # 준비 패널 리프레시 겸용
@@ -1050,6 +1301,11 @@ func _apply_economy(data: Dictionary) -> void:
 const EMP_BOARD_KEY: StringName = &"d_2"
 const EMP_OUTPUT_KEY: StringName = &"c_4"
 const EMP_BOX_KEY: StringName = &"i_1"
+## 조리 직원: 출력 작업대(c_4) → 튀김옷 작업대(b_2) → 빈 튀김기 → 선반(c_3)
+const EMP_BREAD_KEY: StringName = &"b_2"
+const EMP_SHELF_KEY: StringName = &"c_3"
+## 서빙 직원: 선반(c_3) → 제출대(x_1)
+const EMP_SUBMIT_KEY: StringName = &"x_1"
 const EMP_SPAWN_TILE: Vector2i = Vector2i(2, 2)
 
 ## 오늘의 채용 후보 (매일 갱신, §10.2 무작위 고정 스탯 — 전 매장 공유 풀)
@@ -1077,15 +1333,21 @@ func request_hire_candidate(index: int) -> void:
 		return
 	if index < 0 or index >= job_candidates.size():
 		return
-	if not s.employees.is_empty():
-		return  # 슬라이스: 매장당 직원 1명 상한
 	var candidate: Dictionary = job_candidates[index]
+	var def_id: StringName = StringName(String(candidate.get(
+		"def_id", "employee.prep.basic")))
+	# 매장당 역할별 1명 (§10.1 — 고정 역할, 직무 변경 불가)
+	var role: EmployeeDef.Role = (Defs.get_def(def_id) as EmployeeDef).role
+	for other_eid: int in s.employees.keys():
+		if (s.employees[other_eid] as EmployeeState).role() == role:
+			notify_fail.rpc_id(peer, "role_taken")
+			return
 	var cost: int = int(candidate.get("hire_cost", 0))
 	if FranchiseState.money < cost:
 		notify_fail.rpc_id(peer, "not_enough_money")
 		return
 	var emp: EmployeeState = EmployeeState.create(
-		next_eid, &"employee.prep.basic", EMP_SPAWN_TILE)
+		next_eid, def_id, EMP_SPAWN_TILE)
 	next_eid += 1
 	emp.apply_candidate(candidate, GameClock.day)
 	# 향후 30일 휴가 확정 (§10.4 — 준비 단계에서 사전 확인 가능)
@@ -1138,8 +1400,7 @@ func _apply_fire(city_id: String, eid: int, new_money: int) -> void:
 	var emp: EmployeeState = s.employees.get(eid)
 	if emp != null and emp.carrying_iid != 0:
 		items.erase(emp.carrying_iid)
-	if int(s.station_employee.get(EMP_BOARD_KEY, 0)) == eid:
-		s.station_employee.erase(EMP_BOARD_KEY)
+	_release_reservations(s, eid)
 	s.employees.erase(eid)
 	if city_id == my_city():
 		employee_changed.emit(eid)
@@ -1163,27 +1424,46 @@ func _employee_go(city_id: String, emp: EmployeeState,
 	_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 
 
+## 역할별 FSM 디스패치 (§10.1). 설비 예약은 위상에서 유도되므로
+## (_reserved_keys) FSM은 위상 전이 브로드캐스트만 책임진다.
 func _tick_employee(city_id: String, s: LiveStore,
 		emp: EmployeeState, delta: float) -> void:
 	emp.timer -= delta
+	match emp.get_def().role:
+		EmployeeDef.Role.COOK:
+			_tick_cook(city_id, s, emp)
+		EmployeeDef.Role.SERVE:
+			_tick_serve(city_id, s, emp)
+		_:
+			_tick_prep(city_id, s, emp)
+
+
+## 휴가·병가·조퇴로 오늘 일하지 않는가 (§10.4 — IDLE 게이트)
+func _emp_absent(emp: EmployeeState) -> bool:
+	var progress: float = 0.0
+	if GameClock.service_length > 0.0:
+		progress = GameClock.service_elapsed / GameClock.service_length
+	return emp.is_absent(GameClock.day, progress)
+
+
+## 전처리 직원: 재료함 → 전용 도마 칼질 → 출력 작업대 배출
+func _tick_prep(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 	match emp.phase:
 		EmployeeState.Phase.IDLE:
-			# 휴가일에는 출근하지 않는다 — 급여는 정산에서 계속 지급 (§10.4)
-			if emp.is_on_vacation(GameClock.day):
+			# 휴가·병가·조퇴에는 일하지 않는다 — 급여는 계속 지급 (§10.4)
+			if _emp_absent(emp):
 				return
 			var board: StationState = s.stations.get(EMP_BOARD_KEY)
 			if board != null and board.is_empty() \
 					and not s.station_employee.has(EMP_BOARD_KEY) \
 					and s.ingredient_stock > 0 and emp.carrying_iid == 0:
-				# 도마를 즉시 예약 — 이동 중에도 플레이어 개입 차단 (§10.6)
-				s.station_employee[EMP_BOARD_KEY] = emp.eid
+				# TO_BOX 위상이 도마를 예약 — 이동 중에도 플레이어 개입 차단 (§10.6)
 				_employee_go(city_id, emp, EmployeeState.Phase.TO_BOX,
 					_work_tile_of(s, EMP_BOX_KEY))
 		EmployeeState.Phase.TO_BOX:
 			if emp.timer > 0.0:
 				return
 			if s.ingredient_stock <= 0:
-				s.station_employee.erase(EMP_BOARD_KEY)
 				emp.phase = EmployeeState.Phase.IDLE
 				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 				return
@@ -1218,7 +1498,6 @@ func _tick_employee(city_id: String, s: LiveStore,
 			var item: ItemInstance = items.get(board.item_iid)
 			if item == null or not board_def.work_output.has(item.def_id):
 				# 비정상 상태 — 정리 후 복귀
-				s.station_employee.erase(EMP_BOARD_KEY)
 				emp.phase = EmployeeState.Phase.IDLE
 				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 				return
@@ -1228,7 +1507,6 @@ func _tick_employee(city_id: String, s: LiveStore,
 				emp.carrying_iid = item.iid
 				board.item_iid = 0
 				board.work_in_progress = false
-				s.station_employee.erase(EMP_BOARD_KEY)
 				_apply_item_data.rpc(item.to_dict())
 				_apply_station_state.rpc(city_id, EMP_BOARD_KEY, 0, false)
 				_employee_go(city_id, emp, EmployeeState.Phase.TO_OUTPUT,
@@ -1250,6 +1528,299 @@ func _tick_employee(city_id: String, s: LiveStore,
 			else:
 				emp.phase = EmployeeState.Phase.WAIT_OUTPUT
 				emp.timer = 0.5
+
+
+## 조리 직원 (§10.1): 출력대의 손질 재료 → 튀김옷 → 빈 튀김기 → 완성 시 선반.
+func _tick_cook(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
+	match emp.phase:
+		EmployeeState.Phase.IDLE:
+			if _emp_absent(emp) or emp.carrying_iid != 0:
+				return
+			var out: StationState = s.stations.get(EMP_OUTPUT_KEY)
+			var bread: StationState = s.stations.get(EMP_BREAD_KEY)
+			if out == null or bread == null or out.item_iid == 0:
+				return
+			var item: ItemInstance = items.get(out.item_iid)
+			if item == null or not bread.get_def().accepts_item(item.def_id):
+				return
+			if s.station_employee.has(EMP_OUTPUT_KEY) \
+					or s.station_employee.has(EMP_BREAD_KEY) \
+					or not bread.is_empty():
+				return
+			_employee_go(city_id, emp, EmployeeState.Phase.TO_PICKUP,
+				_work_tile_of(s, EMP_OUTPUT_KEY))
+		EmployeeState.Phase.TO_PICKUP:
+			if emp.timer > 0.0:
+				return
+			var out: StationState = s.stations.get(EMP_OUTPUT_KEY)
+			if out == null or out.item_iid == 0:
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			emp.carrying_iid = out.item_iid
+			out.item_iid = 0
+			_apply_station_state.rpc(city_id, EMP_OUTPUT_KEY, 0, false)
+			_employee_go(city_id, emp, EmployeeState.Phase.TO_BREAD,
+				_work_tile_of(s, EMP_BREAD_KEY))
+		EmployeeState.Phase.TO_BREAD:
+			if emp.timer > 0.0:
+				return
+			var bread: StationState = s.stations.get(EMP_BREAD_KEY)
+			bread.item_iid = emp.carrying_iid
+			bread.work_in_progress = true
+			emp.carrying_iid = 0
+			emp.phase = EmployeeState.Phase.BREADING
+			emp.timer = emp.work_interval
+			_apply_station_state.rpc(city_id, EMP_BREAD_KEY, bread.item_iid, true)
+			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+		EmployeeState.Phase.BREADING:
+			if emp.timer > 0.0:
+				return
+			var bread: StationState = s.stations.get(EMP_BREAD_KEY)
+			var bread_def: StationDef = bread.get_def()
+			var item: ItemInstance = items.get(bread.item_iid)
+			if item == null or not bread_def.work_output.has(item.def_id):
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			item.def_id = StringName(String(bread_def.work_output[item.def_id]))
+			emp.carrying_iid = item.iid
+			bread.item_iid = 0
+			bread.work_in_progress = false
+			emp.phase = EmployeeState.Phase.WAIT_FRYER
+			emp.timer = 0.0
+			_apply_item_data.rpc(item.to_dict())
+			_apply_station_state.rpc(city_id, EMP_BREAD_KEY, 0, false)
+			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+		EmployeeState.Phase.WAIT_FRYER:
+			if emp.timer > 0.0:
+				return
+			var fryer_key: StringName = _free_fryer(s)
+			if fryer_key == StringName():
+				emp.timer = 0.5
+				return
+			emp.work_station = fryer_key
+			_employee_go(city_id, emp, EmployeeState.Phase.TO_FRYER,
+				_work_tile_of(s, fryer_key))
+		EmployeeState.Phase.TO_FRYER:
+			if emp.timer > 0.0:
+				return
+			var fryer: StationState = s.stations.get(emp.work_station)
+			if fryer == null or not fryer.is_empty():
+				emp.work_station = &""
+				emp.phase = EmployeeState.Phase.WAIT_FRYER
+				emp.timer = 0.5
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			fryer.item_iid = emp.carrying_iid
+			emp.carrying_iid = 0
+			emp.phase = EmployeeState.Phase.FRYING
+			_apply_station_state.rpc(city_id, emp.work_station, fryer.item_iid, false)
+			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+		EmployeeState.Phase.FRYING:
+			var fryer: StationState = s.stations.get(emp.work_station)
+			var item: ItemInstance = null if fryer == null \
+				else items.get(fryer.item_iid)
+			if fryer == null or item == null:
+				# 화재 소실 등 — 작업 포기 후 복귀 (§23.1)
+				emp.work_station = &""
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			var fryer_def: StationDef = fryer.get_def()
+			if CookStateMachine.state_for(item.cook_elapsed, fryer_def) \
+					== CookStateMachine.State.UNDERDONE:
+				return
+			var result: StringName = CookStateMachine.resolve_takeout(item, fryer_def)
+			if result != item.def_id:
+				item.def_id = result
+				item.cook_elapsed = 0.0
+				item.cuts_done = 0
+			emp.carrying_iid = item.iid
+			fryer.item_iid = 0
+			_apply_item_data.rpc(item.to_dict())
+			_apply_station_state.rpc(city_id, emp.work_station, 0, false)
+			emp.work_station = &""
+			_cook_try_go_shelf(city_id, s, emp)
+		EmployeeState.Phase.TO_SHELF:
+			if emp.timer > 0.0:
+				return
+			var shelf: StationState = s.stations.get(EMP_SHELF_KEY)
+			if shelf == null or not shelf.is_empty():
+				emp.phase = EmployeeState.Phase.WAIT_SHELF
+				emp.timer = 0.5
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			shelf.item_iid = emp.carrying_iid
+			emp.carrying_iid = 0
+			emp.phase = EmployeeState.Phase.IDLE
+			_apply_station_state.rpc(city_id, EMP_SHELF_KEY, shelf.item_iid, false)
+			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+		EmployeeState.Phase.WAIT_SHELF:
+			if emp.timer > 0.0:
+				return
+			_cook_try_go_shelf(city_id, s, emp)
+
+
+## 선반이 비고 예약이 없을 때만 이동 시작 — 서빙 직원과의 교착 방지.
+func _cook_try_go_shelf(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
+	var shelf: StationState = s.stations.get(EMP_SHELF_KEY)
+	if shelf != null and shelf.is_empty() \
+			and not s.station_employee.has(EMP_SHELF_KEY):
+		_employee_go(city_id, emp, EmployeeState.Phase.TO_SHELF,
+			_work_tile_of(s, EMP_SHELF_KEY))
+	else:
+		emp.phase = EmployeeState.Phase.WAIT_SHELF
+		emp.timer = 0.5
+		_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+
+
+## 비어 있고 예약·화재가 없는 튀김기 키 (결정적 순서). 없으면 빈 StringName.
+func _free_fryer(s: LiveStore) -> StringName:
+	var keys: Array[StringName] = []
+	for key: StringName in s.stations.keys():
+		keys.append(key)
+	keys.sort()
+	for key: StringName in keys:
+		var st: StationState = s.stations.get(key)
+		if st == null or not st.is_empty():
+			continue
+		if st.get_def().kind != StationDef.Kind.FRYER:
+			continue
+		if s.station_employee.has(key):
+			continue
+		if String(s.event.get("type", "")) == "fire" \
+				and String(s.event.get("station", "")) == String(key):
+			continue
+		return key
+	return StringName()
+
+
+## 서빙 직원 (§10.1): 선반의 완성품을 제출대로 운반해 주문 완료.
+## 운반 중 주문이 사라지면 다음 주문까지 대기한다 (§10.6 — 작업은 끝까지).
+func _tick_serve(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
+	match emp.phase:
+		EmployeeState.Phase.IDLE:
+			if _emp_absent(emp) or emp.carrying_iid != 0:
+				return
+			var shelf: StationState = s.stations.get(EMP_SHELF_KEY)
+			if shelf == null or shelf.item_iid == 0 \
+					or s.station_employee.has(EMP_SHELF_KEY):
+				return
+			var item: ItemInstance = items.get(shelf.item_iid)
+			if item == null or not item.get_def().submittable:
+				return
+			var recipe: RecipeDef = _recipe_for_output(item.def_id)
+			if recipe == null or s.orders.count_for(recipe.id) == 0:
+				return
+			_employee_go(city_id, emp, EmployeeState.Phase.TO_SHELF_PICK,
+				_work_tile_of(s, EMP_SHELF_KEY))
+		EmployeeState.Phase.TO_SHELF_PICK:
+			if emp.timer > 0.0:
+				return
+			var shelf: StationState = s.stations.get(EMP_SHELF_KEY)
+			if shelf == null or shelf.item_iid == 0:
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			emp.carrying_iid = shelf.item_iid
+			shelf.item_iid = 0
+			_apply_station_state.rpc(city_id, EMP_SHELF_KEY, 0, false)
+			_employee_go(city_id, emp, EmployeeState.Phase.TO_SUBMIT,
+				_work_tile_of(s, EMP_SUBMIT_KEY))
+		EmployeeState.Phase.TO_SUBMIT, EmployeeState.Phase.WAIT_ORDER:
+			if emp.timer > 0.0:
+				return
+			var item: ItemInstance = items.get(emp.carrying_iid)
+			if item == null:
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			var recipe: RecipeDef = _recipe_for_output(item.def_id)
+			if recipe == null or s.orders.count_for(recipe.id) == 0:
+				emp.phase = EmployeeState.Phase.WAIT_ORDER
+				emp.timer = 0.5
+				return
+			var price: int = FranchiseState.price_of(recipe)
+			var iid: int = emp.carrying_iid
+			emp.carrying_iid = 0
+			emp.phase = EmployeeState.Phase.IDLE
+			_apply_employee_submit.rpc(city_id, iid, String(recipe.id),
+				price, FranchiseState.money + price)
+			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+
+
+## 직원 재배치 운송 비용 (§10.5): 국가 간 이동이 더 비싸다.
+## CityDef에 좌표가 없어 거리 대신 국가 차등만 적용 (슬라이스).
+const TRANSFER_COST_DOMESTIC: int = 3000
+const TRANSFER_COST_ABROAD: int = 8000
+
+
+func transfer_cost(from_city: String, to_city: String) -> int:
+	var a: CityDef = Defs.get_def(StringName(from_city)) as CityDef
+	var b: CityDef = Defs.get_def(StringName(to_city)) as CityDef
+	if a.country_id == b.country_id:
+		return TRANSFER_COST_DOMESTIC
+	return TRANSFER_COST_ABROAD
+
+
+## 직원 재배치 (§10.5): 준비 단계 전용, 개설 매장으로 즉시·영구 이적.
+## 계약(등급·특성·휴가·최소 근무일)은 그대로 유지된다.
+@rpc("any_peer", "call_local", "reliable")
+func request_transfer_employee(eid: int, target_city: String) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	var city_id: String = city_of_peer(peer)
+	var s: LiveStore = live.get(city_id)
+	if s == null or not s.employees.has(eid):
+		return
+	if target_city == city_id or not store_is_open(target_city):
+		return
+	var emp: EmployeeState = s.employees[eid]
+	# 대상 매장 역할별 1명 유지 (§10.1)
+	if _city_has_role(target_city, emp.role()):
+		notify_fail.rpc_id(peer, "role_taken")
+		return
+	var cost: int = transfer_cost(city_id, target_city)
+	if FranchiseState.money < cost:
+		notify_fail.rpc_id(peer, "not_enough_money")
+		return
+	# 서버 상태를 직접 옮기고 전체 스냅샷 전파 (매장 승격/강등과 동일 패턴)
+	s.employees.erase(eid)
+	_release_reservations(s, eid)
+	emp.phase = EmployeeState.Phase.IDLE
+	emp.timer = 0.0
+	emp.work_station = &""
+	emp.carrying_iid = 0
+	emp.tile_from = EMP_SPAWN_TILE
+	emp.tile_to = EMP_SPAWN_TILE
+	if live.has(target_city):
+		(live[target_city] as LiveStore).employees[eid] = emp
+	else:
+		var bundle: Dictionary = FranchiseState.stores.get(target_city, {})
+		var emp_dicts: Dictionary = bundle.get("employees", {})
+		emp_dicts[str(eid)] = emp.to_dict()
+		bundle["employees"] = emp_dicts
+		FranchiseState.stores[target_city] = bundle
+	FranchiseState.set_money(FranchiseState.money - cost)
+	_apply_snapshot.rpc(build_snapshot())
+
+
+func _city_has_role(city_id: String, role: EmployeeDef.Role) -> bool:
+	if live.has(city_id):
+		var s: LiveStore = live[city_id]
+		for eid: int in s.employees.keys():
+			if (s.employees[eid] as EmployeeState).role() == role:
+				return true
+		return false
+	var bundle: Dictionary = FranchiseState.stores.get(city_id, {})
+	var emp_dicts: Dictionary = bundle.get("employees", {})
+	for key: String in emp_dicts.keys():
+		var emp: EmployeeState = EmployeeState.from_dict(emp_dicts[key])
+		if emp.role() == role:
+			return true
+	return false
 
 
 # ── 냉장고 (PLAN.md §17) ────────────────────────────────────────────
@@ -1352,8 +1923,27 @@ func _start_service() -> void:
 	for city_id: String in live.keys():
 		(live[city_id] as LiveStore).next_order_in = randf_range(2.0, 5.0)
 	_roll_daily_events()  # 오늘의 매장 이벤트 판정 (§23.1)
+	_roll_employee_health()  # 직원 질병·조퇴 판정 (§10.4)
 	_apply_service_start.rpc()
 	GameClock.set_phase(GameClock.Phase.SERVICE)
+
+
+## 영업 시작 시 직원별 질병·조퇴 판정 (§10.4 — 특성이 확률에 영향).
+## 병가는 종일 결근, 조퇴는 영업 후반부터 이탈. 급여는 계속 지급된다.
+func _roll_employee_health() -> void:
+	for city_id: String in live.keys():
+		var s: LiveStore = live[city_id]
+		for eid: int in s.employees.keys():
+			var emp: EmployeeState = s.employees[eid]
+			if emp.sick_chance <= 0.0 or emp.is_on_vacation(GameClock.day):
+				continue
+			var roll: float = market_rng.randf()
+			if roll < emp.sick_chance:
+				emp.sick_day = GameClock.day
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+			elif roll < emp.sick_chance * 1.5:
+				emp.leave_early_day = GameClock.day
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 
 
 ## GameClock이 영업 시간 종료 시 호출 (서버 전용): 마감 폐기 + 정산 (§18).
@@ -1383,7 +1973,8 @@ func on_service_time_over() -> void:
 		var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
 		var eff: float = CityEconomy.effective_demand(city,
 			CityEconomy.demand_mult(FranchiseState.city_econ, city_id),
-			CityEconomy.event_demand_factor(FranchiseState.city_events, city_id))
+			CityEconomy.event_demand_factor(FranchiseState.city_events, city_id)
+			* CityEconomy.ad_demand_factor(FranchiseState.ad_campaigns, city_id))
 		offline_revenue += int(_bundle_staff_count(bundle) * eff
 			* OFFLINE_REVENUE_PER_STAFF)
 		wages += _bundle_wages(bundle)
@@ -1391,6 +1982,21 @@ func on_service_time_over() -> void:
 	var rent: int = 0
 	for city_id: String in opened_city_ids():
 		rent += (Defs.get_def(StringName(city_id)) as CityDef).rent_per_day
+	# 만기 도래 대출 (§9): 원금+만기 이자 일괄 납부, 자금 부족 시 연체 전환
+	var money_left: int = FranchiseState.money + offline_revenue \
+		- wages - interest - rent
+	var maturity_paid: int = 0
+	var remaining_loans: Array = []
+	for loan: Variant in FranchiseState.loans.duplicate(true):
+		var row: Dictionary = loan
+		if GameClock.day >= int(row["due_day"]):
+			var amount: int = LoanBook.payoff(row, GameClock.day)
+			if money_left >= amount:
+				money_left -= amount
+				maturity_paid += amount
+				continue
+			row["overdue"] = true  # 연체: 이자 가산 + 신규 대출 제한 (§9)
+		remaining_loans.append(row)
 	GameClock.set_phase(GameClock.Phase.SETTLEMENT)
 	_apply_settlement.rpc({
 		"disposed": disposed,
@@ -1400,7 +2006,9 @@ func on_service_time_over() -> void:
 		"wages": wages,
 		"interest": interest,
 		"rent": rent,
-		"new_money": FranchiseState.money + offline_revenue - wages - interest - rent,
+		"maturity": maturity_paid,
+		"loans": remaining_loans,
+		"new_money": money_left,
 		"day": GameClock.day,
 	})
 	SaveService.autosave()  # 마감 정산 후 (§25)
@@ -1429,11 +2037,12 @@ func _advance_to_next_day() -> void:
 			city_ids.append(String(id))
 	var econ: Dictionary = CityEconomy.drifted(
 		FranchiseState.city_econ, city_ids, market_rng)
-	# 급격 경제 이벤트 진행·발생 (§8.1)
+	# 급격 경제 이벤트 진행·발생 (§8.1) + 광고 캠페인 경과 (§8.3)
 	var events: Dictionary = CityEconomy.tick_events(
 		FranchiseState.city_events, city_ids, market_rng)
+	var ads: Dictionary = CityEconomy.tick_ads(FranchiseState.ad_campaigns)
 	# 무료 재고 보충 없음 — 준비 단계에서 주문해야 한다 (§21.1)
-	_apply_new_day.rpc(0, econ, events)
+	_apply_new_day.rpc(0, econ, events, ads)
 	GameClock.advance_day()
 	# 채용 후보 매일 갱신 + 직원 휴가 창 연장 (§10.2/§10.4)
 	server_refresh_candidates()
@@ -1618,6 +2227,22 @@ func _apply_submit(city_id: String, peer: int, slot: int, iid: int,
 		order_completed.emit(int(order.get("oid", 0)), revenue)
 
 
+## 서빙 직원의 주문 제출 (§10.1): 아이템 소멸 + 주문 원자 완료 + 매출 반영
+@rpc("authority", "call_local", "reliable")
+func _apply_employee_submit(city_id: String, iid: int, recipe_id: String,
+		revenue: int, new_money: int) -> void:
+	items.erase(iid)
+	var order: Dictionary = {}
+	var s: LiveStore = live.get(city_id)
+	if s != null:
+		order = s.orders.complete_first(StringName(recipe_id))
+		s.revenue_today += revenue
+	FranchiseState.set_money(new_money)
+	if city_id == my_city():
+		orders_changed.emit()
+		order_completed.emit(int(order.get("oid", 0)), revenue)
+
+
 @rpc("authority", "call_local", "reliable")
 func _apply_order_spawned(city_id: String, order: Dictionary) -> void:
 	var s: LiveStore = live.get(city_id)
@@ -1652,17 +2277,21 @@ func _apply_employee_state(city_id: String, data: Dictionary,
 	# 서버는 자신의 FSM 인스턴스를 유지 (타이머 보존) — 값만 덮지 않는다
 	if not is_server() or not s.employees.has(emp.eid):
 		s.employees[emp.eid] = emp
-	var occupying: bool = emp.phase in [
-		EmployeeState.Phase.TO_BOX,
-		EmployeeState.Phase.TO_BOARD,
-		EmployeeState.Phase.CUTTING,
-	]
-	if occupying:
-		s.station_employee[EMP_BOARD_KEY] = emp.eid
-	elif int(s.station_employee.get(EMP_BOARD_KEY, 0)) == emp.eid:
-		s.station_employee.erase(EMP_BOARD_KEY)
+	_release_reservations(s, emp.eid)
+	for key: StringName in _reserved_keys(emp):
+		s.station_employee[key] = emp.eid
 	if city_id == my_city():
 		employee_changed.emit(emp.eid)
+
+
+## 해당 직원이 점유한 설비 예약을 모두 해제
+func _release_reservations(s: LiveStore, eid: int) -> void:
+	var owned: Array[StringName] = []
+	for key: StringName in s.station_employee.keys():
+		if int(s.station_employee[key]) == eid:
+			owned.append(key)
+	for key: StringName in owned:
+		s.station_employee.erase(key)
 
 
 @rpc("authority", "call_local", "reliable")
@@ -1736,6 +2365,7 @@ func _apply_settlement(summary: Dictionary) -> void:
 				emp.carrying_iid = 0
 			emp.phase = EmployeeState.Phase.IDLE
 			emp.timer = 0.0
+			emp.work_station = &""
 			if city_id == my_city():
 				employee_changed.emit(eid)
 		s.station_employee.clear()
@@ -1748,7 +2378,10 @@ func _apply_settlement(summary: Dictionary) -> void:
 			items.erase(iid)
 		inv.clear_all()
 	ready_peers.clear()
+	skill_states.clear()  # 스킬·쿨다운은 영업일 단위 (§11.4 시간 정지의 축소판)
 	disposed_today = int(summary.get("disposed", 0))
+	if summary.has("loans"):
+		FranchiseState.loans = (summary["loans"] as Array).duplicate(true)
 	if summary.has("new_money"):
 		FranchiseState.set_money(int(summary["new_money"]))
 	orders_changed.emit()
@@ -1758,13 +2391,15 @@ func _apply_settlement(summary: Dictionary) -> void:
 
 
 @rpc("authority", "call_local", "reliable")
-func _apply_new_day(stock: int, econ: Dictionary, events: Dictionary) -> void:
+func _apply_new_day(stock: int, econ: Dictionary, events: Dictionary,
+		ads: Dictionary) -> void:
 	for city_id: String in live.keys():
 		var s: LiveStore = live[city_id]
 		s.ingredient_stock = stock
 		s.revenue_today = 0
 	FranchiseState.city_econ = econ
 	FranchiseState.city_events = events
+	FranchiseState.ad_campaigns = ads
 	ready_peers.clear()
 	disposed_today = 0
 	ready_state_changed.emit()
@@ -1879,7 +2514,8 @@ func apply_snapshot_local(snap: Dictionary) -> void:
 	live.clear()
 	var store_dicts: Dictionary = snap.get("stores", {})
 	for city_id: String in store_dicts.keys():
-		var s: LiveStore = LiveStore.from_dict(store_dicts[city_id], layout)
+		var s: LiveStore = LiveStore.from_dict(
+			store_dicts[city_id], layout_of(city_id))
 		_rebuild_station_employee(s)
 		live[city_id] = s
 	peer_city.clear()
@@ -1921,7 +2557,7 @@ func reset() -> void:
 	peer_city.clear()
 	inventories.clear()
 	next_iid = 1
-	layout = null
+	_layout_cache.clear()
 
 
 func _in_reach(player_tile: Vector2i, target: Vector2i) -> bool:

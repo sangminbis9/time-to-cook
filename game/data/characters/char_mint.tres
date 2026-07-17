@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"char.mint"
+display_name_ko = "미트"
+specialty = 0
+backstory_ko = "칼 한 자루로 전국을 돌던 전처리 장인."
+cut_per_work = 2
+move_speed_mult = 1.0
+skill_name_ko = "집중 손질"
+skill_duration = 8.0
+skill_cooldown = 20.0
+skill_cut_bonus = 2
+skill_speed_mult = 1.0
+upgrade_costs = Array[int]([20000, 40000])
+upgrade_duration_bonus = 3.0

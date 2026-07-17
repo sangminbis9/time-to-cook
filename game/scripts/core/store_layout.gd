@@ -75,8 +75,56 @@ static func parse(rows: Array[String]) -> StoreLayout:
 	return layout
 
 
+## 소형 매장 (12×8) — 개설비가 싼 도시. 설비 구성(키 집합)은 표준과 동일.
+const COMPACT_SMALL: Array[String] = [
+	"############",
+	"ICDDCBBCFFCR",
+	"............",
+	"...1........",
+	"............",
+	".......2....",
+	"......XX....",
+	"############",
+]
+
+## 대형 매장 (15×10) — 개설비가 비싼 대도시. 설비 사이 여유 공간.
+const WIDE_LARGE: Array[String] = [
+	"###############",
+	"IC.DDC.BBC.FFCR",
+	"...............",
+	".....1.........",
+	"...............",
+	"...............",
+	".........2.....",
+	"...............",
+	".........XX....",
+	"###############",
+]
+
+## 개설비 기준 매장 규모 (원)
+const COMPACT_MAX_ENTRY: int = 60000
+const WIDE_MIN_ENTRY: int = 90000
+
+
 static func incheon() -> StoreLayout:
 	return parse(INCHEON_SMALL)
+
+
+## 도시별 매장 템플릿 (§6.6 슬라이스): 개설비가 싼 도시 = 소형(12×8),
+## 비싼 대도시 = 대형(15×10), 그 외(인천·부산 등) = 표준(13×9).
+## 설비 키 집합은 세 템플릿이 동일 — 직원 고정 경로(d_2·c_4·b_2·c_3)가 항상 유효.
+static func for_city(city_id: String) -> StoreLayout:
+	var id: StringName = StringName(city_id)
+	if city_id == "" or not Defs.has_def(id):
+		return incheon()
+	var city: CityDef = Defs.get_def(id) as CityDef
+	if city == null:
+		return incheon()
+	if city.entry_cost >= WIDE_MIN_ENTRY:
+		return parse(WIDE_LARGE)
+	if city.entry_cost > 0 and city.entry_cost <= COMPACT_MAX_ENTRY:
+		return parse(COMPACT_SMALL)
+	return incheon()
 
 
 var _station_tiles_cache: Dictionary = {}

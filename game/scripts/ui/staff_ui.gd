@@ -44,23 +44,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## 재직 직원이 없으면 오늘의 채용 후보를, 있으면 현황·해고를 보여준다.
+const ROLE_LABELS: Dictionary = {"prep": "전처리", "cook": "조리", "serve": "서빙"}
+
+## 재배치 대상 선택 중인 직원 (0 = 일반 목록 표시, §10.5)
+var _transfer_eid: int = 0
+
+
+## 재직 직원 현황·해고·재배치 + 오늘의 채용 후보 (역할별 1명 — 중복 역할은 비활성).
 func _refresh() -> void:
 	for child: Node in _rows.get_children():
 		child.queue_free()
-	if GameServer.employees.is_empty():
-		for i in range(GameServer.job_candidates.size()):
-			var c: Dictionary = GameServer.job_candidates[i]
-			var button: Button = Button.new()
-			button.add_theme_font_size_override("font_size", 11)
-			button.text = "고용 %s (%s급·%s) %d원 · 일급 %d" % [
-				String(c["name"]), String(c["grade"]), String(c["trait"]),
-				int(c["hire_cost"]), int(c["wage"])]
-			button.disabled = FranchiseState.money < int(c["hire_cost"])
-			var idx: int = i
-			button.pressed.connect(func() -> void:
-				GameServer.request_hire_candidate.rpc_id(1, idx))
-			_rows.add_child(button)
+	if _transfer_eid != 0:
+		_refresh_transfer()
 		return
 	for eid: int in GameServer.employees.keys():
 		var emp: EmployeeState = GameServer.employees[eid]
@@ -71,14 +66,28 @@ func _refresh() -> void:
 		var status: String = ""
 		if emp.is_on_vacation(GameClock.day):
 			status = " · 오늘 휴가"
+		elif emp.sick_day == GameClock.day:
+			status = " · 오늘 병가"
+		elif emp.leave_early_day == GameClock.day:
+			status = " · 오늘 조퇴"
 		else:
 			for day: int in emp.vacation_days:
 				if day > GameClock.day:
 					status = " · 휴가 %d일 후" % (day - GameClock.day)
 					break
-		label.text = "%s (%s급·%s) 일급 %d%s" % [
-			emp.display_name, emp.grade, emp.trait_name, emp.wage, status]
+		label.text = "[%s] %s (%s급·%s) 일급 %d%s" % [
+			emp.get_def().display_name_ko, emp.display_name,
+			emp.grade, emp.trait_name, emp.wage, status]
 		row.add_child(label)
+		if GameServer.opened_city_ids().size() > 1:
+			var move: Button = Button.new()
+			move.add_theme_font_size_override("font_size", 11)
+			move.text = "재배치"
+			var move_eid: int = eid
+			move.pressed.connect(func() -> void:
+				_transfer_eid = move_eid
+				_refresh())
+			row.add_child(move)
 		var fire: Button = Button.new()
 		fire.add_theme_font_size_override("font_size", 11)
 		var penalty: int = EmployeeRoster.fire_penalty(
@@ -89,3 +98,62 @@ func _refresh() -> void:
 			GameServer.request_fire_employee.rpc_id(1, fire_eid))
 		row.add_child(fire)
 		_rows.add_child(row)
+	for i in range(GameServer.job_candidates.size()):
+		var c: Dictionary = GameServer.job_candidates[i]
+		var role: String = String(c.get("role", "prep"))
+		var button: Button = Button.new()
+		button.add_theme_font_size_override("font_size", 11)
+		button.text = "고용 [%s] %s (%s급·%s) %d원 · 일급 %d" % [
+			String(ROLE_LABELS.get(role, role)), String(c["name"]),
+			String(c["grade"]), String(c["trait"]),
+			int(c["hire_cost"]), int(c["wage"])]
+		button.disabled = FranchiseState.money < int(c["hire_cost"]) \
+			or _role_taken(String(c.get("def_id", "employee.prep.basic")))
+		var idx: int = i
+		button.pressed.connect(func() -> void:
+			GameServer.request_hire_candidate.rpc_id(1, idx))
+		_rows.add_child(button)
+
+
+## 재배치 대상 매장 선택 (§10.5): 개설 매장 중 현재 도시 제외, 운송 비용 표시.
+func _refresh_transfer() -> void:
+	var emp: EmployeeState = GameServer.employees.get(_transfer_eid)
+	if emp == null:
+		_transfer_eid = 0
+		_refresh()
+		return
+	var title: Label = Label.new()
+	title.add_theme_font_size_override("font_size", 11)
+	title.text = "%s 재배치 — 대상 매장 선택" % emp.display_name
+	_rows.add_child(title)
+	var my_city: String = GameServer.my_city()
+	for city_id: String in GameServer.opened_city_ids():
+		if city_id == my_city:
+			continue
+		var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
+		var cost: int = GameServer.transfer_cost(my_city, city_id)
+		var button: Button = Button.new()
+		button.add_theme_font_size_override("font_size", 11)
+		button.text = "%s (운송 %d원)" % [city.display_name_ko, cost]
+		button.disabled = FranchiseState.money < cost
+		var target: String = city_id
+		var eid: int = _transfer_eid
+		button.pressed.connect(func() -> void:
+			GameServer.request_transfer_employee.rpc_id(1, eid, target)
+			_transfer_eid = 0)
+		_rows.add_child(button)
+	var back: Button = Button.new()
+	back.add_theme_font_size_override("font_size", 11)
+	back.text = "뒤로"
+	back.pressed.connect(func() -> void:
+		_transfer_eid = 0
+		_refresh())
+	_rows.add_child(back)
+
+
+## 같은 역할의 직원이 이미 내 매장에 있는가 (역할당 정의 1종이므로 def_id 비교)
+func _role_taken(def_id: String) -> bool:
+	for eid: int in GameServer.employees.keys():
+		if String((GameServer.employees[eid] as EmployeeState).def_id) == def_id:
+			return true
+	return false

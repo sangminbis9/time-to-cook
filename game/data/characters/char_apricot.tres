@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"char.apricot"
+display_name_ko = "살구"
+specialty = 1
+backstory_ko = "배달로 단련된 다리 — 매장 안에서도 멈추지 않는다."
+cut_per_work = 1
+move_speed_mult = 1.15
+skill_name_ko = "질주"
+skill_duration = 8.0
+skill_cooldown = 20.0
+skill_cut_bonus = 0
+skill_speed_mult = 1.5
+upgrade_costs = Array[int]([20000, 40000])
+upgrade_duration_bonus = 3.0
