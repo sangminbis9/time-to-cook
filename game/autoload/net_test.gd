@@ -1533,6 +1533,18 @@ func _scenario_sauce_menu() -> void:
 		"양념대 구매 8000 차감 (실제 %d)" % FranchiseState.money)
 	_check(GameServer.sellable_recipes(GameServer.live[city]).size() == 2,
 		"양념대 보유 — 판매 메뉴 2종")
+	# 변형 양념대 (§19.1): 연구 전 구매 거부 → 연구 후 구매·메뉴 확장
+	GameServer.request_buy_station.rpc_id(1, &"station.spicy_table", Vector2i(4, 5))
+	await _sleep(0.2)
+	_check(FranchiseState.money == 42000,
+		"매운 양념 미연구 — 구매 거부 (실제 %d)" % FranchiseState.money)
+	FranchiseState.research["research.spicy_sauce"] = true
+	GameServer.request_buy_station.rpc_id(1, &"station.spicy_table", Vector2i(4, 5))
+	await _sleep(0.2)
+	_check(FranchiseState.money == 34000,
+		"매운 양념대 구매 8000 차감 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.sellable_recipes(GameServer.live[city]).size() == 3,
+		"매운 양념대 보유 — 판매 메뉴 3종")
 	var sauce_key: StringName = GameServer.station_key_at(Vector2i(2, 5))
 	_check(sauce_key != StringName(), "양념대 배치 확인")
 	GameServer.request_set_price.rpc_id(1, &"recipe.sweet_dakgangjeong", 4300)

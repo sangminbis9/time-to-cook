@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.spicy_sauce"
+display_name_ko = "매운 양념 개발"
+category = 0
+desc_ko = "매운 양념대 구매를 해금한다 — 매운 닭강정 판매 가능."
+cost_money = 8000
+cost_points = 1
+prereq = Array[StringName]([&"research.sauce_base"])

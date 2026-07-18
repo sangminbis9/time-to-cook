@@ -620,14 +620,23 @@ func _tick_order_spawner(city_id: String, s: LiveStore, delta: float) -> void:
 
 ## 이 매장이 제조 가능한 메뉴 (§19.1).
 ## 양념 메뉴는 양념대 보유 매장만 — 연구(§20) 대신 설비 구매로 해금 (슬라이스).
+## 양념대 종류 → 판매 가능해지는 레시피 (§19.1 — 변형은 설비 보유로 결정)
+const SAUCE_TABLE_RECIPES: Dictionary = {
+	&"station.sauce_table": &"recipe.sweet_dakgangjeong",
+	&"station.spicy_table": &"recipe.spicy_dakgangjeong",
+	&"station.soy_table": &"recipe.soy_dakgangjeong",
+}
+
+
 func sellable_recipes(s: LiveStore) -> Array[RecipeDef]:
 	var menu: Array[RecipeDef] = [
 		Defs.get_def(&"recipe.fried_dakgangjeong") as RecipeDef]
+	var seen: Dictionary = {}
 	for key: StringName in s.placements.keys():
-		var entry: Dictionary = s.placements[key]
-		if entry["def_id"] == &"station.sauce_table":
-			menu.append(Defs.get_def(&"recipe.sweet_dakgangjeong") as RecipeDef)
-			break
+		var def_id: StringName = (s.placements[key] as Dictionary)["def_id"]
+		if SAUCE_TABLE_RECIPES.has(def_id) and not seen.has(def_id):
+			seen[def_id] = true
+			menu.append(Defs.get_def(SAUCE_TABLE_RECIPES[def_id]) as RecipeDef)
 	return menu
 
 
@@ -640,6 +649,8 @@ const STATION_PRICES: Dictionary = {
 	&"station.breading_table": 6000,
 	&"station.fryer.basic": 12000,
 	&"station.sauce_table": 8000,
+	&"station.spicy_table": 8000,
+	&"station.soy_table": 8000,
 }
 
 
@@ -1385,6 +1396,8 @@ func request_buy_ad(ad_id: String) -> void:
 ## 연구로 해금되는 기능 게이트: 대상 → 필요 연구 id
 const STATION_RESEARCH: Dictionary = {
 	&"station.sauce_table": "research.sauce_base",
+	&"station.spicy_table": "research.spicy_sauce",
+	&"station.soy_table": "research.soy_sauce",
 }
 const PREVENTION_RESEARCH: String = "research.safety"
 const AD_RESEARCH: Dictionary = {
