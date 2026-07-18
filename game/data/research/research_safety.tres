@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.safety"
+display_name_ko = "매장 안전 설비"
+category = 3
+desc_ko = "예방 설비(스프링클러·발전기·배수·미끄럼 방지) 구매를 해금한다."
+cost_money = 8000
+cost_points = 1
+prereq = Array[StringName]([])

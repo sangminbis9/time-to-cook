@@ -44,6 +44,15 @@ var char_upgrades: Dictionary = {}
 ## 캐릭터 정보 능력 (§7.2-③) 마지막 사용일: char_id(String) → day
 var char_info_day: Dictionary = {}
 
+## 완료한 연구 (§20): research_id(String) → true. 구매 즉시 적용, 되돌림 없음.
+var research: Dictionary = {}
+## 연구 포인트 (§20): 영업일 정산마다 1점 적립
+var research_points: int = 0
+
+
+func research_done(research_id: String) -> bool:
+	return research.has(research_id)
+
 
 func char_upgrade_level(char_id: String) -> int:
 	return int(char_upgrades.get(char_id, 0))
@@ -80,6 +89,8 @@ func to_dict() -> Dictionary:
 		"ad_campaigns": ad_campaigns.duplicate(true),
 		"char_upgrades": char_upgrades.duplicate(),
 		"char_info_day": char_info_day.duplicate(),
+		"research": research.duplicate(),
+		"research_points": research_points,
 	}
 
 
@@ -104,4 +115,6 @@ func from_dict(data: Dictionary) -> void:
 	ad_campaigns = data.get("ad_campaigns", {})
 	char_upgrades = data.get("char_upgrades", {})
 	char_info_day = data.get("char_info_day", {})
+	research = data.get("research", {})
+	research_points = int(data.get("research_points", 0))
 	set_money(int(data.get("money", 0)))

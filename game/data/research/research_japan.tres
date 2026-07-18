@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.japan"
+display_name_ko = "일본 진출"
+category = 3
+desc_ko = "일본 도시 매장 개설을 해금한다."
+cost_money = 30000
+cost_points = 2
+prereq = Array[StringName]([&"research.brand"])

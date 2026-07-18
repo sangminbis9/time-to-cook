@@ -21,6 +21,9 @@ const FAIL_MESSAGES: Dictionary = {
 	"broker_gone": "정보상과 연락이 닿지 않습니다",
 	"no_info_ability": "정보 능력이 없는 캐릭터입니다",
 	"info_cooldown": "정보망을 아직 다시 쓸 수 없습니다",
+	"research_required": "먼저 연구가 필요합니다",
+	"research_prereq": "선행 연구가 필요합니다",
+	"no_research_points": "연구 포인트가 부족합니다",
 	"station_on_fire": "불이 붙었습니다! J로 진압하세요",
 	"invalid_spot": "그 자리에는 놓을 수 없습니다",
 	"role_taken": "이미 같은 역할의 직원이 있습니다",
@@ -361,6 +364,7 @@ func _build_prep_menu() -> void:
 	_menu_button("직원", func() -> void: _open_popup(StaffUi.new()))
 	_menu_button("경영", func() -> void: _open_popup(ManageUi.new()))
 	_menu_button("캐릭터", func() -> void: _open_popup(CharacterUi.new()))
+	_menu_button("연구", func() -> void: _open_popup(ResearchUi.new()))
 	_map_button = _menu_button("지도", func() -> void: _open_popup(CityMapUi.new()))
 	GameServer.market_info_changed.connect(_refresh_prep_menu)
 	GameServer.ready_state_changed.connect(_refresh_prep_menu)

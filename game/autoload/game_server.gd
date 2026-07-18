@@ -33,6 +33,7 @@ signal stores_changed
 ## 내 매장의 이벤트(§23.1) 시작·진행·해제 시 발신
 signal store_event_changed
 signal market_info_changed
+signal research_changed
 signal snapshot_applied
 signal fail_notified(msg_key: String)
 ## 게스트의 씬 로드 완료(client_ready) 시 서버에서 발신
@@ -670,6 +671,11 @@ func request_buy_station(def_id: StringName, tile: Vector2i) -> void:
 	var s: LiveStore = live.get(city_id)
 	if s == null or not STATION_PRICES.has(def_id):
 		return
+	# 연구 해금 설비 (§20 장비 해금)
+	if STATION_RESEARCH.has(def_id) \
+			and not FranchiseState.research_done(String(STATION_RESEARCH[def_id])):
+		notify_fail.rpc_id(peer, "research_required")
+		return
 	var price: int = int(STATION_PRICES[def_id])
 	if FranchiseState.money < price:
 		notify_fail.rpc_id(peer, "not_enough_money")
@@ -824,6 +830,10 @@ func request_buy_prevention(id: String) -> void:
 	var s: LiveStore = live.get(city_id)
 	if s == null or not PREVENTION_PRICES.has(id):
 		return
+	# 예방 설비는 안전 연구로 해금 (§20 운영 해금)
+	if not FranchiseState.research_done(PREVENTION_RESEARCH):
+		notify_fail.rpc_id(peer, "research_required")
+		return
 	if s.preventions.has(id):
 		notify_fail.rpc_id(peer, "already_owned")
 		return
@@ -907,6 +917,12 @@ func request_open_store(city_id: String) -> void:
 		return
 	if store_is_open(city_id):
 		return
+	# 해외 진출은 연구로 해금 (§20 국가 진출)
+	for prefix: String in COUNTRY_RESEARCH.keys():
+		if city_id.begins_with(prefix) \
+				and not FranchiseState.research_done(String(COUNTRY_RESEARCH[prefix])):
+			notify_fail.rpc_id(peer, "research_required")
+			return
 	var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
 	if FranchiseState.money < city.entry_cost:
 		notify_fail.rpc_id(peer, "not_enough_money")
@@ -1305,6 +1321,11 @@ func request_buy_ad(ad_id: String) -> void:
 	var city_id: String = city_of_peer(peer)
 	if city_id == "" or not CityEconomy.AD_PRODUCTS.has(ad_id):
 		return
+	# 상위 광고 상품은 마케팅 연구로 해금 (§20)
+	if AD_RESEARCH.has(ad_id) \
+			and not FranchiseState.research_done(String(AD_RESEARCH[ad_id])):
+		notify_fail.rpc_id(peer, "research_required")
+		return
 	if FranchiseState.ad_campaigns.has(city_id):
 		notify_fail.rpc_id(peer, "ad_active")
 		return
@@ -1318,6 +1339,56 @@ func request_buy_ad(ad_id: String) -> void:
 		"ad_city": city_id,
 		"ad": {"ad_id": ad_id, "days_left": int(product["days"])},
 	})
+
+
+# ── 연구 (PLAN.md §20) ──────────────────────────────────────────────
+## 전체 트리 처음부터 공개, 공용 자금 + 연구 포인트 사용, 구매 즉시 적용.
+## 연구 포인트는 영업일 정산마다 1점 적립.
+
+## 연구로 해금되는 기능 게이트: 대상 → 필요 연구 id
+const STATION_RESEARCH: Dictionary = {
+	&"station.sauce_table": "research.sauce_base",
+}
+const PREVENTION_RESEARCH: String = "research.safety"
+const AD_RESEARCH: Dictionary = {
+	"local_tv": "research.tv_ads",
+}
+const COUNTRY_RESEARCH: Dictionary = {
+	"city.japan.": "research.japan",
+}
+
+
+## 연구 구매 (준비 단계). 선행 조건 전부 충족해야 한다 (§20).
+@rpc("any_peer", "call_local", "reliable")
+func request_buy_research(research_id: String) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	if not Defs.has_def(StringName(research_id)):
+		return
+	var def: ResearchDef = Defs.get_def(StringName(research_id)) as ResearchDef
+	if def == null or FranchiseState.research_done(research_id):
+		return
+	for pre: StringName in def.prereq:
+		if not FranchiseState.research_done(String(pre)):
+			notify_fail.rpc_id(peer, "research_prereq")
+			return
+	if FranchiseState.research_points < def.cost_points:
+		notify_fail.rpc_id(peer, "no_research_points")
+		return
+	if FranchiseState.money < def.cost_money:
+		notify_fail.rpc_id(peer, "not_enough_money")
+		return
+	_apply_research.rpc(research_id, FranchiseState.money - def.cost_money,
+		FranchiseState.research_points - def.cost_points)
+
+
+@rpc("authority", "call_local", "reliable")
+func _apply_research(research_id: String, new_money: int, new_points: int) -> void:
+	FranchiseState.research[research_id] = true
+	FranchiseState.research_points = new_points
+	FranchiseState.set_money(new_money)
+	research_changed.emit()
 
 
 ## 경영 상태 일괄 반영 (재고/자금/가격/대출 — 존재하는 키만 적용)
@@ -2061,6 +2132,7 @@ func on_service_time_over() -> void:
 		"maturity": maturity_paid,
 		"loans": remaining_loans,
 		"new_money": money_left,
+		"rp": FranchiseState.research_points + 1,  # 영업일마다 연구 포인트 1점 (§20)
 		"day": GameClock.day,
 	})
 	SaveService.autosave()  # 마감 정산 후 (§25)
@@ -2436,6 +2508,8 @@ func _apply_settlement(summary: Dictionary) -> void:
 		FranchiseState.loans = (summary["loans"] as Array).duplicate(true)
 	if summary.has("new_money"):
 		FranchiseState.set_money(int(summary["new_money"]))
+	if summary.has("rp"):
+		FranchiseState.research_points = int(summary["rp"])
 	orders_changed.emit()
 	ready_state_changed.emit()
 	snapshot_applied.emit()  # 뷰 전체 리프레시

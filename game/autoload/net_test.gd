@@ -107,6 +107,8 @@ func _run() -> void:
 			await _scenario_market()
 		"char_info":
 			await _scenario_char_info()
+		"research":
+			await _scenario_research()
 		"dynamic_economy":
 			await _scenario_dynamic_economy()
 		"econ_events":
@@ -918,6 +920,57 @@ func _scenario_char_info() -> void:
 	_finish(_all_passed(), "")
 
 
+## 연구 트리 (§20, 솔로): 포인트·선행 조건·기능 게이트·정산 적립.
+func _scenario_research() -> void:
+	FranchiseState.set_money(300000)
+	GameClock.service_length = 3.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	# 포인트 0: 구매 거부
+	GameServer.request_buy_research.rpc_id(1, "research.brand")
+	await _sleep(0.2)
+	_check(not FranchiseState.research_done("research.brand")
+		and FranchiseState.money == 300000, "포인트 없으면 구매 불가")
+	# 연구 전 게이트: 양념대·방송 광고·일본 개설 전부 거부
+	GameServer.request_buy_station.rpc_id(1, &"station.sauce_table", Vector2i(5, 4))
+	GameServer.request_buy_ad.rpc_id(1, "local_tv")
+	GameServer.request_open_store.rpc_id(1, "city.japan.fukuoka")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 300000
+		and not GameServer.store_is_open("city.japan.fukuoka")
+		and FranchiseState.ad_campaigns.is_empty(),
+		"미연구 게이트: 설비·광고·해외 개설 거부 (실제 %d)" % FranchiseState.money)
+	# 포인트 주입 (서버 상태 직접 설정 — 솔로) → 선행 미충족 거부
+	FranchiseState.research_points = 3
+	GameServer.request_buy_research.rpc_id(1, "research.japan")
+	await _sleep(0.2)
+	_check(not FranchiseState.research_done("research.japan"),
+		"선행(브랜드 강화) 없이 일본 진출 불가")
+	# 브랜드 강화 (15000 + 1RP) → 일본 진출 (30000 + 2RP)
+	GameServer.request_buy_research.rpc_id(1, "research.brand")
+	await _sleep(0.2)
+	_check(FranchiseState.research_done("research.brand")
+		and FranchiseState.money == 285000
+		and FranchiseState.research_points == 2,
+		"브랜드 강화 구매 — 자금·포인트 차감 (실제 %d/%dRP)"
+		% [FranchiseState.money, FranchiseState.research_points])
+	GameServer.request_buy_research.rpc_id(1, "research.japan")
+	await _sleep(0.2)
+	_check(FranchiseState.research_done("research.japan")
+		and FranchiseState.research_points == 0, "선행 충족 후 일본 진출 연구")
+	# 해외 개설 해금 (후쿠오카 90000)
+	GameServer.request_open_store.rpc_id(1, "city.japan.fukuoka")
+	await _sleep(0.2)
+	_check(GameServer.store_is_open("city.japan.fukuoka"),
+		"연구 후 일본 매장 개설 (실제 %d)" % FranchiseState.money)
+	# 정산마다 연구 포인트 +1 (§20)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	_check(FranchiseState.research_points == 1, "정산 시 연구 포인트 적립")
+	_finish(_all_passed(), "")
+
+
 ## 동적 경제 (§8.1, 솔로): 기본가에서는 주문이 발생하고, 과도한 인상(수용률 0)
 ## 에서는 주문이 오지 않으며, 다음 날 도시 수요 배율이 드리프트한다.
 func _scenario_dynamic_economy() -> void:
@@ -1221,6 +1274,7 @@ func _scenario_staff_transfer() -> void:
 ## 매일 잔여 일수 감소, 만료 후 배율 원복.
 func _scenario_ads() -> void:
 	FranchiseState.set_money(20000)
+	FranchiseState.research["research.tv_ads"] = true  # 방송 광고 해금 (§20)
 	GameClock.service_length = 3.0
 	GameServer.order_interval_min = 9999.0
 	GameServer.order_interval_max = 9999.0
@@ -1322,6 +1376,7 @@ func _scenario_loans() -> void:
 ## 후라이드 완성품을 양념대 K 작업으로 변환 → 설정가로 제출.
 func _scenario_sauce_menu() -> void:
 	FranchiseState.set_money(50000)
+	FranchiseState.research["research.sauce_base"] = true  # 양념대 해금 (§20)
 	GameClock.service_length = 40.0
 	GameServer.order_interval_min = 9999.0
 	GameServer.order_interval_max = 9999.0
@@ -1384,6 +1439,7 @@ func _scenario_sauce_menu() -> void:
 ## 미보유 누수는 발생 → 대상 설비 J 연타 3회로 수리. 영업 중 구매 거부.
 func _scenario_prevention() -> void:
 	FranchiseState.set_money(100000)
+	FranchiseState.research["research.safety"] = true  # 예방 설비 해금 (§20)
 	GameClock.service_length = 30.0
 	GameServer.request_buy_prevention.rpc_id(1, "sprinkler")
 	GameServer.request_buy_prevention.rpc_id(1, "generator")

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.tv_ads"
+display_name_ko = "방송 마케팅"
+category = 5
+desc_ko = "지역 방송 광고 집행을 해금한다. 전단지는 기본 제공."
+cost_money = 12000
+cost_points = 1
+prereq = Array[StringName]([])
