@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.auto_order"
+display_name_ko = "자동 발주"
+category = 4
+desc_ko = "매일 정산 때 라이브 매장마다 다음 날 재료 20개를 자동 주문한다."
+cost_money = 15000
+cost_points = 2
+prereq = Array[StringName]([&"research.supplier"])

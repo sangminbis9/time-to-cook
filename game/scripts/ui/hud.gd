@@ -343,6 +343,8 @@ func _on_day_settled(summary: Dictionary) -> void:
 		text += "\n보험료  -%d원" % int(summary["insurance_fee"])
 	if int(summary.get("insurance_payout", 0)) > 0:
 		text += "\n보험금  +%d원" % int(summary["insurance_payout"])
+	if int(summary.get("auto_order", 0)) > 0:
+		text += "\n자동 발주  -%d원" % int(summary["auto_order"])
 	if int(summary.get("interest", 0)) > 0:
 		text += "\n대출 이자  -%d원" % int(summary["interest"])
 	if int(summary.get("maturity", 0)) > 0:

@@ -1005,11 +1005,43 @@ func _scenario_research() -> void:
 	await _sleep(0.2)
 	_check(GameServer.store_is_open("city.japan.fukuoka"),
 		"연구 후 일본 매장 개설 (실제 %d)" % FranchiseState.money)
-	# 정산마다 연구 포인트 +1 (§20)
+	# 물류·조리 기술 노드 (§21.2/§20 — P32)
+	FranchiseState.research_points = 4
+	_check(GameServer.effective_ingredient_cost() == 500, "기본 재료 단가 500")
+	GameServer.request_buy_research.rpc_id(1, "research.auto_order")
+	await _sleep(0.2)
+	_check(not FranchiseState.research_done("research.auto_order"),
+		"선행(공급업체 계약) 없이 자동 발주 불가")
+	GameServer.request_buy_research.rpc_id(1, "research.supplier")
+	await _sleep(0.2)
+	_check(GameServer.effective_ingredient_cost() == 400,
+		"공급업체 계약 — 단가 400 (실제 %d)" % GameServer.effective_ingredient_cost())
+	var cut_before: int = GameServer._cut_amount(1)
+	GameServer.request_buy_research.rpc_id(1, "research.knife_skill")
+	await _sleep(0.2)
+	_check(GameServer._cut_amount(1) == cut_before + 1, "칼질 숙련 — 진행량 +1")
+	GameServer.request_buy_research.rpc_id(1, "research.auto_order")
+	await _sleep(0.2)
+	_check(FranchiseState.research_done("research.auto_order"),
+		"선행 충족 후 자동 발주 연구")
+	# 정산마다 연구 포인트 +1 (§20) + 자동 발주 비용·다음 날 재고 (§21.2)
+	# (람다는 값 캡처라 재할당이 밖에 안 보임 — 배열 참조로 우회)
+	var captured: Array[Dictionary] = [{}]
+	GameServer.day_settled.connect(
+		func(sm: Dictionary) -> void: captured[0] = sm)
 	GameServer.request_ready_toggle.rpc_id(1)
 	await _wait_until(func() -> bool:
 		return GameClock.phase == GameClock.Phase.SETTLEMENT)
 	_check(FranchiseState.research_points == 1, "정산 시 연구 포인트 적립")
+	_check(int(captured[0].get("auto_order", 0))
+		== GameServer.AUTO_ORDER_QTY * 400,
+		"정산 자동 발주 비용 20개×400원 (실제 %d)"
+		% int(captured[0].get("auto_order", 0)))
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.PREP)
+	_check(GameServer.ingredient_stock == GameServer.AUTO_ORDER_QTY,
+		"다음 날 재고 자동 보충 (실제 %d)" % GameServer.ingredient_stock)
 	_finish(_all_passed(), "")
 
 

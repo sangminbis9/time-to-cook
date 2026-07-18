@@ -1217,7 +1217,10 @@ func _apply_market_info(city_id: String, report: Dictionary, new_money: int) -> 
 func effective_ingredient_cost(city_id: String = "") -> int:
 	if city_id == "":
 		city_id = my_city()
-	return int(ingredient_unit_cost * CityEconomy.event_cost_factor(
+	# 공급업체 계약 (§21.2): 기본 단가 인하
+	var unit: int = SUPPLIER_UNIT_COST \
+		if FranchiseState.research_done(SUPPLIER_RESEARCH) else ingredient_unit_cost
+	return int(unit * CityEconomy.event_cost_factor(
 		FranchiseState.city_events, city_id))
 
 
@@ -1356,12 +1359,14 @@ func _apply_skill(peer: int, until: float, cooldown_until: float) -> void:
 	skill_changed.emit(peer)
 
 
-## 칼질 1회 진행량: 전처리 전문 패시브 + 액티브 보너스 (§11.2)
+## 칼질 1회 진행량: 전처리 전문 패시브 + 액티브 보너스 (§11.2) + 칼질 숙련 연구 (§20)
 func _cut_amount(peer: int) -> int:
 	var c: CharacterDef = character_of(peer)
 	var amount: int = c.cut_per_work
 	if skill_active(peer):
 		amount += c.skill_cut_bonus
+	if FranchiseState.research_done(KNIFE_RESEARCH):
+		amount += 1
 	return maxi(1, amount)
 
 
@@ -1433,6 +1438,12 @@ const AD_RESEARCH: Dictionary = {
 const COUNTRY_RESEARCH: Dictionary = {
 	"city.japan.": "research.japan",
 }
+## 물류·조리 기술 연구 (§21.2/§20): 효과 상수
+const SUPPLIER_RESEARCH: String = "research.supplier"
+const SUPPLIER_UNIT_COST: int = 400
+const AUTO_ORDER_RESEARCH: String = "research.auto_order"
+const AUTO_ORDER_QTY: int = 20
+const KNIFE_RESEARCH: String = "research.knife_skill"
 
 
 ## 연구 구매 (준비 단계). 선행 조건 전부 충족해야 한다 (§20).
@@ -1706,7 +1717,9 @@ func _tick_prep(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 				emp.phase = EmployeeState.Phase.IDLE
 				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 				return
-			item.cuts_done += 1
+			# 칼질 숙련 연구 (§20)는 직원에게도 적용
+			item.cuts_done += 2 \
+				if FranchiseState.research_done(KNIFE_RESEARCH) else 1
 			if item.cuts_done >= board_def.required_cuts:
 				item.def_id = StringName(String(board_def.work_output[item.def_id]))
 				emp.carrying_iid = item.iid
@@ -2275,9 +2288,14 @@ func on_service_time_over() -> void:
 	var rent: int = 0
 	for city_id: String in opened_city_ids():
 		rent += current_rent(city_id)
+	# 자동 발주 (§21.2): 라이브 매장마다 다음 날 재고를 정산에서 선구매
+	var auto_order: int = 0
+	if FranchiseState.research_done(AUTO_ORDER_RESEARCH):
+		for city_id: String in live.keys():
+			auto_order += AUTO_ORDER_QTY * effective_ingredient_cost(city_id)
 	# 만기 도래 대출 (§9): 원금+만기 이자 일괄 납부, 자금 부족 시 연체 전환
 	var money_left: int = FranchiseState.money + offline_revenue \
-		- wages - interest - rent - insurance_fee + insurance_payout
+		- wages - interest - rent - insurance_fee + insurance_payout - auto_order
 	var maturity_paid: int = 0
 	var remaining_loans: Array = []
 	for loan: Variant in FranchiseState.loans.duplicate(true):
@@ -2301,6 +2319,7 @@ func on_service_time_over() -> void:
 		"rent": rent,
 		"insurance_fee": insurance_fee,
 		"insurance_payout": insurance_payout,
+		"auto_order": auto_order,
 		"maturity": maturity_paid,
 		"loans": remaining_loans,
 		"new_money": money_left,
@@ -2337,8 +2356,10 @@ func _advance_to_next_day() -> void:
 	var events: Dictionary = CityEconomy.tick_events(
 		FranchiseState.city_events, city_ids, market_rng)
 	var ads: Dictionary = CityEconomy.tick_ads(FranchiseState.ad_campaigns)
-	# 무료 재고 보충 없음 — 준비 단계에서 주문해야 한다 (§21.1)
-	_apply_new_day.rpc(0, econ, events, ads)
+	# 무료 재고 보충 없음 (§21.1) — 자동 발주 연구 시 정산에서 선구매한 분량 (§21.2)
+	var stock: int = AUTO_ORDER_QTY \
+		if FranchiseState.research_done(AUTO_ORDER_RESEARCH) else 0
+	_apply_new_day.rpc(stock, econ, events, ads)
 	GameClock.advance_day()
 	# 채용 후보 매일 갱신 + 직원 휴가 창 연장 (§10.2/§10.4)
 	server_refresh_candidates()

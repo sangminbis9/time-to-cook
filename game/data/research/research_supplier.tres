@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.supplier"
+display_name_ko = "공급업체 계약"
+category = 4
+desc_ko = "재료 단가를 500원에서 400원으로 낮춘다."
+cost_money = 12000
+cost_points = 1
+prereq = Array[StringName]([])

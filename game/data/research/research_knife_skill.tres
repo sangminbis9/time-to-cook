@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.knife_skill"
+display_name_ko = "칼질 숙련"
+category = 1
+desc_ko = "칼질 1회당 손질 진행이 1 늘어난다 (플레이어·직원 공통)."
+cost_money = 10000
+cost_points = 1
+prereq = Array[StringName]([])

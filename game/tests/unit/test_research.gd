@@ -57,3 +57,15 @@ func test_gate_targets_exist() -> void:
 	for prefix: String in GameServer.COUNTRY_RESEARCH.keys():
 		assert_true(Defs.has_def(StringName(
 			String(GameServer.COUNTRY_RESEARCH[prefix]))))
+	for rid: String in [GameServer.SUPPLIER_RESEARCH,
+			GameServer.AUTO_ORDER_RESEARCH, GameServer.KNIFE_RESEARCH]:
+		assert_true(Defs.has_def(StringName(rid)), "%s 정의 존재" % rid)
+
+
+func test_logistics_and_cooking_have_nodes() -> void:
+	# 물류·조리 기술 카테고리 채움 (P32 — 장비 카테고리는 아직 빈 슬라이스)
+	var seen: Dictionary = {}
+	for def: ResearchDef in _all_research():
+		seen[def.category] = true
+	assert_true(seen.has(ResearchDef.Category.LOGISTICS), "물류 노드 존재")
+	assert_true(seen.has(ResearchDef.Category.COOKING), "조리 기술 노드 존재")
