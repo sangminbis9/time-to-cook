@@ -111,7 +111,7 @@ func _refresh() -> void:
 			String(c["grade"]), String(c["trait"]),
 			int(c["hire_cost"]), int(c["wage"])]
 		button.disabled = FranchiseState.money < int(c["hire_cost"]) \
-			or _role_taken(String(c.get("def_id", "employee.prep.basic")))
+			or GameServer.employees.size() >= GameServer.MAX_EMPLOYEES_PER_STORE
 		var idx: int = i
 		button.pressed.connect(func() -> void:
 			GameServer.request_hire_candidate.rpc_id(1, idx))
@@ -154,9 +154,3 @@ func _refresh_transfer() -> void:
 	_rows.add_child(back)
 
 
-## 같은 역할의 직원이 이미 내 매장에 있는가 (역할당 정의 1종이므로 def_id 비교)
-func _role_taken(def_id: String) -> bool:
-	for eid: int in GameServer.employees.keys():
-		if String((GameServer.employees[eid] as EmployeeState).def_id) == def_id:
-			return true
-	return false

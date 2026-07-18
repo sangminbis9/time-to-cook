@@ -1469,6 +1469,8 @@ const EMP_SPAWN_TILE: Vector2i = Vector2i(2, 2)
 ## 오늘의 채용 후보 (매일 갱신, §10.2 무작위 고정 스탯 — 전 매장 공유 풀)
 var job_candidates: Array[Dictionary] = []
 const CANDIDATES_PER_DAY: int = 3
+## 매장 총원 상한 — 역할별 인원 제한은 없다 (역할별 다수 고용)
+const MAX_EMPLOYEES_PER_STORE: int = 8
 
 
 ## 서버 전용: 채용 후보 갱신·브로드캐스트.
@@ -1496,12 +1498,11 @@ func request_hire_candidate(index: int) -> void:
 	var candidate: Dictionary = job_candidates[index]
 	var def_id: StringName = StringName(String(candidate.get(
 		"def_id", "employee.prep.basic")))
-	# 매장당 역할별 1명 (§10.1 — 고정 역할, 직무 변경 불가)
-	var role: EmployeeDef.Role = (Defs.get_def(def_id) as EmployeeDef).role
-	for other_eid: int in s.employees.keys():
-		if (s.employees[other_eid] as EmployeeState).role() == role:
-			notify_fail.rpc_id(peer, "role_taken")
-			return
+	# 역할별 다수 고용 허용 — 동시 작업은 설비 예약(§10.6)이 조정.
+	# 매장 총원만 제한한다.
+	if s.employees.size() >= MAX_EMPLOYEES_PER_STORE:
+		notify_fail.rpc_id(peer, "store_full")
+		return
 	var cost: int = int(candidate.get("hire_cost", 0))
 	if FranchiseState.money < cost:
 		notify_fail.rpc_id(peer, "not_enough_money")
@@ -2017,9 +2018,9 @@ func request_transfer_employee(eid: int, target_city: String) -> void:
 	if target_city == city_id or not store_is_open(target_city):
 		return
 	var emp: EmployeeState = s.employees[eid]
-	# 대상 매장 역할별 1명 유지 (§10.1)
-	if _city_has_role(target_city, emp.role()):
-		notify_fail.rpc_id(peer, "role_taken")
+	# 대상 매장 총원 상한 (역할별 인원 제한 없음)
+	if _city_staff_count(target_city) >= MAX_EMPLOYEES_PER_STORE:
+		notify_fail.rpc_id(peer, "store_full")
 		return
 	var cost: int = transfer_cost(city_id, target_city)
 	if FranchiseState.money < cost:
@@ -2044,6 +2045,12 @@ func request_transfer_employee(eid: int, target_city: String) -> void:
 		FranchiseState.stores[target_city] = bundle
 	FranchiseState.set_money(FranchiseState.money - cost)
 	_apply_snapshot.rpc(build_snapshot())
+
+
+func _city_staff_count(city_id: String) -> int:
+	if live.has(city_id):
+		return (live[city_id] as LiveStore).employees.size()
+	return _bundle_staff_count(FranchiseState.stores.get(city_id, {}))
 
 
 func _city_has_role(city_id: String, role: EmployeeDef.Role) -> bool:

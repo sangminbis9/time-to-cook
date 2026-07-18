@@ -26,7 +26,7 @@ const FAIL_MESSAGES: Dictionary = {
 	"no_research_points": "연구 포인트가 부족합니다",
 	"station_on_fire": "불이 붙었습니다! J로 진압하세요",
 	"invalid_spot": "그 자리에는 놓을 수 없습니다",
-	"role_taken": "이미 같은 역할의 직원이 있습니다",
+	"store_full": "매장 직원 정원이 가득 찼습니다",
 	"already_owned": "이미 보유하고 있습니다",
 	"ad_active": "이미 광고가 진행 중입니다",
 	"skill_cooldown": "스킬이 아직 준비되지 않았습니다",

@@ -1656,11 +1656,25 @@ func _scenario_employee_roles() -> void:
 		await _sleep(0.1)
 	_check(GameServer.employees.size() == 3, "역할별 3명 채용 (실제 %d)"
 		% GameServer.employees.size())
-	# 같은 역할(조리) 중복 채용 거부
+	# 같은 역할(조리) 2명째 채용 허용 — 역할별 다수 고용
 	GameServer.request_hire_candidate.rpc_id(1, 0)
 	await _sleep(0.2)
-	_check(GameServer.employees.size() == 3, "중복 역할 채용 거부")
-	_check(GameServer.job_candidates.size() == 1, "거부된 후보는 목록 유지")
+	_check(GameServer.employees.size() == 4, "같은 역할 2명째 채용 허용 (실제 %d)"
+		% GameServer.employees.size())
+	# 매장 총원 상한 8명: 4명 추가 후 9번째는 거부
+	GameServer.job_candidates = []
+	for i in range(5):
+		GameServer.job_candidates.append({
+			"name": "충원%d" % i, "grade": "D", "trait": "무난함", "wage": 2200,
+			"hire_cost": 3000, "min_days": 0, "work_interval": 1.2,
+			"move_speed": 2.5, "vacation_per_month": 0,
+			"role": "clean", "def_id": "employee.clean.basic"})
+	for i in range(5):
+		GameServer.request_hire_candidate.rpc_id(1, 0)
+		await _sleep(0.1)
+	_check(GameServer.employees.size() == 8, "총원 상한 8명 (실제 %d)"
+		% GameServer.employees.size())
+	_check(GameServer.job_candidates.size() == 1, "9번째 채용 거부 — 후보 유지")
 	GameServer.request_buy_stock.rpc_id(1, 3)
 	await _sleep(0.2)
 	GameServer.request_ready_toggle.rpc_id(1)
