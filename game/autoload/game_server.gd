@@ -77,6 +77,8 @@ var event_fire_chance: float = 0.10
 var event_blackout_chance: float = 0.10
 var event_leak_chance: float = 0.08
 var event_slippery_chance: float = 0.08
+var event_vent_chance: float = 0.05
+var event_breakdown_chance: float = 0.05
 ## 튀김기에서 음식이 타면 이 확률로 화재 (대응 가능한 원인 — 태우지 말 것)
 var event_burnt_fire_chance: float = 0.35
 ## 이벤트 대응에 필요한 상호작용(J) 횟수 (§23.3 소화기·수리·청소)
@@ -88,6 +90,8 @@ const PREVENTION_PRICES: Dictionary = {
 	"generator": 15000,
 	"drainage": 8000,
 	"antislip": 8000,
+	"vent": 10000,
+	"maintenance": 12000,
 }
 ## 이벤트 type → 이를 원천 차단하는 예방 설비 id
 const PREVENTION_BLOCKS: Dictionary = {
@@ -95,6 +99,8 @@ const PREVENTION_BLOCKS: Dictionary = {
 	"blackout": "generator",
 	"leak": "drainage",
 	"slippery": "antislip",
+	"vent": "vent",
+	"breakdown": "maintenance",
 }
 ## 보험 (§23.4): 매장 단위 가입·해지 자유. 일일 보험료를 정산에서 내고,
 ## 그날 매장 이벤트가 발생했으면 건당 보험금으로 손실을 보전한다.
@@ -189,6 +195,10 @@ func _physics_process(delta: float) -> void:
 				continue
 			var def: StationDef = st.get_def()
 			if def.kind != StationDef.Kind.FRYER:
+				continue
+			# 장비 고장 (§23.1): 고장난 튀김기만 조리 정지 (아이템 유지)
+			if String(s.event.get("type", "")) == "breakdown" \
+					and String(key) == String(s.event.get("station", "")):
 				continue
 			var item: ItemInstance = items.get(st.item_iid)
 			if item == null:
@@ -378,8 +388,9 @@ func request_station_interact(key: StringName, player_tile: Vector2i) -> void:
 	# 매장 이벤트 대응 (§23.3): 불붙은 설비에 J = 진압, 정전 중 냉장고에 J = 차단기
 	if not s.event.is_empty():
 		var etype: String = String(s.event.get("type", ""))
-		# 진압(화재)·수리(누수)·청소(미끄러움): 대상 설비에 J 연타 (§23.3)
-		if (etype == "fire" or etype == "leak" or etype == "slippery") \
+		# 진압(화재)·수리(누수·환기·장비)·청소(미끄러움): 대상 설비에 J 연타 (§23.3)
+		if (etype == "fire" or etype == "leak" or etype == "slippery"
+				or etype == "vent" or etype == "breakdown") \
 				and String(key) == String(s.event.get("station", "")):
 			_server_event_hit(city_id, s)
 			return
@@ -740,7 +751,8 @@ func _apply_station_layout(city_id: String, key: StringName,
 
 
 # ── 매장 이벤트 (PLAN.md §23.1/§23.3) ───────────────────────────────
-## 슬라이스: 화재·정전 2종, 라이브 매장 전용(오프라인 매장은 무사고 추상화),
+## 슬라이스: 화재·정전·누수·미끄러움·환기 고장·장비 고장 6종,
+## 라이브 매장 전용(오프라인 매장은 무사고 추상화),
 ## 매장당 동시 1건. 이벤트 중에는 주문이 멈춰 대응이 늦을수록 손해다.
 
 ## 내 매장의 진행 중 이벤트 (뷰·프롬프트용 프록시)
@@ -770,10 +782,18 @@ func server_start_store_event(city_id: String, type: String,
 		var st: StationState = s.stations.get(station_key)
 		if st != null and st.item_iid != 0:
 			event["destroy_iid"] = st.item_iid
-	elif type == "leak" or type == "slippery":
+	elif type == "leak" or type == "slippery" or type == "vent":
 		# 무작위 설비에 발생 — J 연타로 수리·청소 (§23.3)
 		if station_key == StringName():
 			station_key = _pick_station_key(s)
+		if station_key == StringName():
+			return
+		event["station"] = String(station_key)
+		event["hits"] = 0
+	elif type == "breakdown":
+		# 장비 고장 (§23.1): 튀김기 1대 조리 정지 (아이템 유지) — J 연타 수리
+		if station_key == StringName():
+			station_key = _pick_fryer_key(s)
 		if station_key == StringName():
 			return
 		event["station"] = String(station_key)
@@ -831,6 +851,13 @@ func _roll_daily_events() -> void:
 		elif roll < event_fire_chance + event_blackout_chance \
 				+ event_leak_chance + event_slippery_chance:
 			type = "slippery"
+		elif roll < event_fire_chance + event_blackout_chance \
+				+ event_leak_chance + event_slippery_chance + event_vent_chance:
+			type = "vent"
+		elif roll < event_fire_chance + event_blackout_chance \
+				+ event_leak_chance + event_slippery_chance \
+				+ event_vent_chance + event_breakdown_chance:
+			type = "breakdown"
 		if type != "":
 			_scheduled_events[city_id] = {"type": type,
 				"at": market_rng.randf_range(0.2, 0.7) * GameClock.service_length}
@@ -1968,7 +1995,8 @@ func _tick_fixer(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 func _fixer_handles(role: EmployeeDef.Role, etype: String) -> bool:
 	if role == EmployeeDef.Role.CLEAN:
 		return etype == "leak" or etype == "slippery"
-	return etype == "fire" or etype == "blackout"
+	return etype == "fire" or etype == "blackout" \
+		or etype == "vent" or etype == "breakdown"
 
 
 func _event_tile(s: LiveStore, etype: String) -> Vector2i:

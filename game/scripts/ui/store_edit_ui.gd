@@ -8,6 +8,8 @@ const PREVENTION_LABELS: Dictionary = {
 	"generator": "발전기 (정전 예방)",
 	"drainage": "배수 시설 (누수 예방)",
 	"antislip": "미끄럼 방지 바닥",
+	"vent": "환기 시설 (환기 고장 예방)",
+	"maintenance": "유지보수 계약 (장비 고장 예방)",
 }
 
 var _rows: VBoxContainer

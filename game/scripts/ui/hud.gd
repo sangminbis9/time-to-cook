@@ -298,6 +298,14 @@ func _refresh_event_banner() -> void:
 			_event_banner.text = "⚠ 바닥이 미끄럽습니다! 엎지른 곳에 J 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
+		"vent":
+			_event_banner.text = "⚠ 환기 고장! 표시된 설비에 J 연타 (%d/%d)" % [
+				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
+			_event_banner.visible = true
+		"breakdown":
+			_event_banner.text = "⚠ 장비 고장! 멈춘 튀김기에 J 연타 (%d/%d)" % [
+				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
+			_event_banner.visible = true
 		_:
 			_event_banner.visible = false
 

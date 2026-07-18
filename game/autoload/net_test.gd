@@ -78,6 +78,8 @@ func _run() -> void:
 		GameServer.event_blackout_chance = 0.0
 		GameServer.event_leak_chance = 0.0
 		GameServer.event_slippery_chance = 0.0
+		GameServer.event_vent_chance = 0.0
+		GameServer.event_breakdown_chance = 0.0
 		GameServer.event_burnt_fire_chance = 0.0
 
 	match scenario:
@@ -770,6 +772,42 @@ func _scenario_store_events() -> void:
 	_check(GameServer.fridge.lock_owner == 0, "복구 시 냉장고 UI 미개방")
 	await _sleep(0.6)
 	_check(item2.cook_elapsed > 0.0, "복구 후 조리 재개")
+
+	# ── 환기 고장: 대상 설비 J 연타 수리 (§23.1)
+	GameServer.server_start_store_event(CITY, "vent", &"d_1")
+	await _sleep(0.2)
+	_check(String(GameServer.current_store_event().get("type", "")) == "vent",
+		"환기 고장 시작")
+	var vent_tile: Vector2i = GameServer.station_tile(&"d_1") + Vector2i(0, 1)
+	for i in range(3):
+		GameServer.request_station_interact.rpc_id(1, &"d_1", vent_tile)
+		await _sleep(0.1)
+	_check(GameServer.current_store_event().is_empty(), "환기 3회 수리 완료")
+
+	# ── 장비 고장: 고장난 튀김기만 조리 정지, 다른 튀김기는 진행 (§23.1)
+	var iid3: int = GameServer.next_iid
+	GameServer.next_iid += 1
+	var item3: ItemInstance = ItemInstance.create(iid3, &"item.breaded_chicken")
+	GameServer.items[iid3] = item3
+	var fryer2: StationState = GameServer.station(&"f_2")
+	fryer2.item_iid = iid3
+	fryer2.work_in_progress = true
+	GameServer.server_start_store_event(CITY, "breakdown", &"f_1")
+	await _sleep(0.2)
+	_check(String(GameServer.current_store_event().get("type", "")) == "breakdown",
+		"장비 고장 시작")
+	var frozen: float = item2.cook_elapsed
+	await _sleep(0.5)
+	_check(item2.cook_elapsed == frozen, "고장 튀김기 조리 정지 (실제 %.2f)"
+		% item2.cook_elapsed)
+	_check(item3.cook_elapsed > 0.0, "다른 튀김기는 조리 계속")
+	var f1_tile: Vector2i = GameServer.station_tile(&"f_1") + Vector2i(0, 1)
+	for i in range(3):
+		GameServer.request_station_interact.rpc_id(1, &"f_1", f1_tile)
+		await _sleep(0.1)
+	_check(GameServer.current_store_event().is_empty(), "장비 3회 수리 완료")
+	await _sleep(0.3)
+	_check(item2.cook_elapsed > frozen, "수리 후 조리 재개")
 	_finish(_all_passed(), "")
 
 
@@ -1600,13 +1638,14 @@ func _scenario_prevention() -> void:
 	GameServer.request_buy_prevention.rpc_id(1, "sprinkler")
 	GameServer.request_buy_prevention.rpc_id(1, "generator")
 	GameServer.request_buy_prevention.rpc_id(1, "antislip")
+	GameServer.request_buy_prevention.rpc_id(1, "maintenance")
 	await _sleep(0.2)
-	_check(FranchiseState.money == 62000,
-		"예방 설비 3종 구매 38000원 차감 (실제 %d)" % FranchiseState.money)
-	_check(GameServer.preventions_view().size() == 3, "보유 목록 3종")
+	_check(FranchiseState.money == 50000,
+		"예방 설비 4종 구매 50000원 차감 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.preventions_view().size() == 4, "보유 목록 4종")
 	GameServer.request_buy_prevention.rpc_id(1, "sprinkler")
 	await _sleep(0.2)
-	_check(FranchiseState.money == 62000, "중복 구매 거부")
+	_check(FranchiseState.money == 50000, "중복 구매 거부")
 	GameServer.request_ready_toggle.rpc_id(1)
 	await _wait_until(func() -> bool:
 		return GameClock.phase == GameClock.Phase.SERVICE)
@@ -1615,6 +1654,7 @@ func _scenario_prevention() -> void:
 	GameServer.server_start_store_event(city, "fire")
 	GameServer.server_start_store_event(city, "blackout")
 	GameServer.server_start_store_event(city, "slippery")
+	GameServer.server_start_store_event(city, "breakdown")
 	await _sleep(0.2)
 	_check(GameServer.current_store_event().is_empty(), "예방 설비가 이벤트 차단")
 	# 배수 시설은 없음 — 누수는 발생한다
@@ -1627,7 +1667,7 @@ func _scenario_prevention() -> void:
 	# 영업 중 예방 설비 구매는 거부 (준비 단계 전용)
 	GameServer.request_buy_prevention.rpc_id(1, "drainage")
 	await _sleep(0.2)
-	_check(GameServer.preventions_view().size() == 3, "영업 중 구매 거부")
+	_check(GameServer.preventions_view().size() == 4, "영업 중 구매 거부")
 	# 대상 설비 J 연타 3회 = 수리 (§23.3)
 	var tile: Vector2i = GameServer.station_tile(key) + Vector2i(0, 1)
 	for i in range(3):
