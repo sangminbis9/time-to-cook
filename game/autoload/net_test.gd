@@ -105,6 +105,8 @@ func _run() -> void:
 			await _scenario_station_edit()
 		"market":
 			await _scenario_market()
+		"char_info":
+			await _scenario_char_info()
 		"dynamic_economy":
 			await _scenario_dynamic_economy()
 		"econ_events":
@@ -875,6 +877,44 @@ func _scenario_market() -> void:
 		and FranchiseState.market_info.has("city.korea.daegu"),
 		"재등장 후 정상 거래 (실제 %d)" % FranchiseState.money)
 	cheap.scam_chance = 0.15
+	_finish(_all_passed(), "")
+
+
+## 캐릭터 정보 능력 (§7.2-③, 솔로): 무료 획득·쿨다운·할인 미포함 (§7.6).
+func _scenario_char_info() -> void:
+	FranchiseState.set_money(50000)
+	var me: CharacterDef = GameServer.character_of(1)
+	_check(me.info_source == &"", "미트: 기본 정보 능력 없음")
+	GameServer.request_free_market_info.rpc_id(1, "city.korea.busan")
+	await _sleep(0.2)
+	_check(not FranchiseState.market_info.has("city.korea.busan"),
+		"능력 없으면 미획득")
+	# 결정적 테스트를 위해 호스트 캐릭터에 능력 주입 (게임에선 살구 전용)
+	me.info_source = &"market.broker.pro"
+	me.info_name_ko = "발품 정보망"
+	me.info_cooldown_days = 3
+	GameServer.request_free_market_info.rpc_id(1, "city.korea.busan")
+	await _sleep(0.2)
+	var report: Dictionary = FranchiseState.market_info.get("city.korea.busan", {})
+	_check(int(report.get("tier", 0)) == 2, "무료 획득: 2등급 정보")
+	_check(FranchiseState.money == 50000,
+		"무료 — 자금 불변 (실제 %d)" % FranchiseState.money)
+	_check(int(report.get("paid_total", 0)) == 0, "실지불 누적 0 (§7.6)")
+	_check(int(FranchiseState.char_info_day.get("char.mint", -1)) == GameClock.day,
+		"사용일 기록")
+	# 쿨다운 중 재사용 불가
+	GameServer.request_free_market_info.rpc_id(1, "city.korea.daegu")
+	await _sleep(0.2)
+	_check(not FranchiseState.market_info.has("city.korea.daegu"),
+		"쿨다운 중 미획득")
+	# §7.6: 무료분은 할인 재원이 아님 — 자문 업그레이드는 정가
+	GameServer.request_buy_market_info.rpc_id(
+		1, "city.korea.busan", "market.advisor.local")
+	await _sleep(0.2)
+	_check(FranchiseState.money == 35000,
+		"자문 정가 15000 — 무료분 할인 없음 (실제 %d)" % FranchiseState.money)
+	me.info_source = &""
+	me.info_name_ko = ""
 	_finish(_all_passed(), "")
 
 

@@ -17,3 +17,6 @@ skill_cut_bonus = 0
 skill_speed_mult = 1.5
 upgrade_costs = Array[int]([20000, 40000])
 upgrade_duration_bonus = 3.0
+info_source = &"market.broker.pro"
+info_name_ko = "발품 정보망"
+info_cooldown_days = 3

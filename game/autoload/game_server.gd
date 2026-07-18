@@ -1071,6 +1071,40 @@ func request_buy_market_info(city_id: String, source_id: String) -> void:
 	_apply_market_info.rpc(city_id, report, FranchiseState.money - price)
 
 
+## 캐릭터 능력으로 시장 정보 무료 획득 (§7.2-③, 준비 단계).
+## 사기 없음, paid_total 미포함 — 상위 등급 할인에 반영되지 않는다 (§7.6).
+@rpc("any_peer", "call_local", "reliable")
+func request_free_market_info(city_id: String) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	if not Defs.has_def(StringName(city_id)):
+		return
+	var c: CharacterDef = character_of(peer)
+	if c.info_source == &"" or not Defs.has_def(c.info_source):
+		notify_fail.rpc_id(peer, "no_info_ability")
+		return
+	var last_day: int = int(FranchiseState.char_info_day.get(String(c.id), -9999))
+	if GameClock.day < last_day + c.info_cooldown_days:
+		notify_fail.rpc_id(peer, "info_cooldown")
+		return
+	var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
+	var source: MarketSourceDef = Defs.get_def(c.info_source) as MarketSourceDef
+	var report: Dictionary = MarketReport.make_report(
+		city, source, market_rng, GameClock.day,
+		FranchiseState.market_info.get(city_id, {}), 0,
+		CityEconomy.demand_mult(FranchiseState.city_econ, city_id))
+	_apply_free_market_info.rpc(city_id, report, String(c.id), GameClock.day)
+
+
+@rpc("authority", "call_local", "reliable")
+func _apply_free_market_info(city_id: String, report: Dictionary,
+		char_id: String, day: int) -> void:
+	FranchiseState.market_info[city_id] = report
+	FranchiseState.char_info_day[char_id] = day
+	market_info_changed.emit()
+
+
 @rpc("authority", "call_local", "reliable")
 func _apply_market_scam(source_id: String, vanish_row: Dictionary,
 		new_money: int) -> void:

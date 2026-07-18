@@ -67,6 +67,17 @@ func test_free_info_not_discounted() -> void:
 	assert_eq(MarketReport.price_for(advisor, free), advisor.price)
 
 
+func test_char_ability_free_report_keeps_paid_total() -> void:
+	# 캐릭터 능력 무료 획득 (§7.2-③): paid_now 0 — 기존 실지불 누적은 보존,
+	# 새로 낸 돈이 없으니 할인 재원도 늘지 않는다 (§7.6)
+	var paid: Dictionary = MarketReport.make_report(city, cheap, rng, 1, {}, 3000)
+	var free: Dictionary = MarketReport.make_report(city, pro, rng, 3, paid, 0)
+	assert_eq(int(free["paid_total"]), 3000, "실지불 누적 보존")
+	assert_eq(int(free["tier"]), 2, "능력 경로 등급으로 갱신")
+	assert_eq(MarketReport.price_for(advisor, free), advisor.price - 3000,
+		"할인은 실지불분만")
+
+
 func test_paid_total_accumulates() -> void:
 	var first: Dictionary = MarketReport.make_report(city, cheap, rng, 1, {}, 3000)
 	var second: Dictionary = MarketReport.make_report(city, pro, rng, 2, first, 5000)

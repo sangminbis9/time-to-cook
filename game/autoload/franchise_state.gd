@@ -41,6 +41,9 @@ var ad_campaigns: Dictionary = {}
 ## 캐릭터 영구 업그레이드 (§11.5): char_id(String) → 레벨. 환불·초기화 없음.
 var char_upgrades: Dictionary = {}
 
+## 캐릭터 정보 능력 (§7.2-③) 마지막 사용일: char_id(String) → day
+var char_info_day: Dictionary = {}
+
 
 func char_upgrade_level(char_id: String) -> int:
 	return int(char_upgrades.get(char_id, 0))
@@ -76,6 +79,7 @@ func to_dict() -> Dictionary:
 		"city_events": city_events.duplicate(true),
 		"ad_campaigns": ad_campaigns.duplicate(true),
 		"char_upgrades": char_upgrades.duplicate(),
+		"char_info_day": char_info_day.duplicate(),
 	}
 
 
@@ -99,4 +103,5 @@ func from_dict(data: Dictionary) -> void:
 	city_events = data.get("city_events", {})
 	ad_campaigns = data.get("ad_campaigns", {})
 	char_upgrades = data.get("char_upgrades", {})
+	char_info_day = data.get("char_info_day", {})
 	set_money(int(data.get("money", 0)))

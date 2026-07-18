@@ -201,3 +201,20 @@ func _refresh_detail() -> void:
 		button.pressed.connect(func() -> void:
 			GameServer.request_buy_market_info.rpc_id(1, _selected_city, sid))
 		buy_row.add_child(button)
+
+	# 캐릭터 정보 능력 (§7.2-③): 능력 보유 캐릭터만, 쿨다운 표시
+	var me: CharacterDef = GameServer.character_of(multiplayer.get_unique_id())
+	if me.info_source != &"":
+		var ability: Button = Button.new()
+		ability.add_theme_font_size_override("font_size", 11)
+		var next_day: int = int(FranchiseState.char_info_day.get(
+			String(me.id), -9999)) + me.info_cooldown_days
+		if GameClock.day < next_day:
+			ability.text = "%s (재사용 %d일 후)" % [
+				me.info_name_ko, next_day - GameClock.day]
+			ability.disabled = true
+		else:
+			ability.text = "%s (무료)" % me.info_name_ko
+		ability.pressed.connect(func() -> void:
+			GameServer.request_free_market_info.rpc_id(1, _selected_city))
+		buy_row.add_child(ability)

@@ -28,3 +28,10 @@ enum Specialty { PREP, TRANSPORT }
 ## 영구 업그레이드 (§11.5): 레벨별 비용, 레벨당 스킬 지속 +초. 환불 없음.
 @export var upgrade_costs: Array[int] = [20000, 40000]
 @export var upgrade_duration_bonus: float = 3.0
+
+## 시장 정보 무료 획득 능력 (§7.2-③): 빈 값이면 능력 없음.
+## 지정 시 해당 정보 경로 수준의 보고서를 무료로 얻는다 — 사기 없음,
+## paid_total에 포함하지 않아 상위 등급 할인에도 반영되지 않는다 (§7.6).
+@export var info_source: StringName = &""
+@export var info_name_ko: String = ""
+@export var info_cooldown_days: int = 3

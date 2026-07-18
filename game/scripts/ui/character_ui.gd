@@ -59,6 +59,9 @@ func _refresh() -> void:
 	var duration: float = c.skill_duration + c.upgrade_duration_bonus * level
 	_add_line("스킬(L): %s — %.0f초 지속 · 쿨다운 %.0f초" % [
 		c.skill_name_ko, duration, c.skill_cooldown])
+	if c.info_source != &"":
+		_add_line("능력: %s — 도시 지도에서 시장 정보 무료 획득 (%d일마다)" % [
+			c.info_name_ko, c.info_cooldown_days])
 	if level < c.upgrade_costs.size():
 		var cost: int = c.upgrade_costs[level]
 		var buy: Button = Button.new()
