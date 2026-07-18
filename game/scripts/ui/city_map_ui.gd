@@ -23,11 +23,7 @@ func _ready() -> void:
 	var root: VBoxContainer = VBoxContainer.new()
 	root.add_theme_constant_override("separation", 4)
 	add_child(root)
-	var title: Label = Label.new()
-	title.text = "도시 지도  (Esc: 닫기)"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 11)
-	root.add_child(title)
+	root.add_child(PopupTitle.build(self, "도시 지도  (Esc: 닫기)"))
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(290, 240)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

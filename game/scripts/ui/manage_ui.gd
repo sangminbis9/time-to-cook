@@ -26,11 +26,7 @@ func _ready() -> void:
 	var root: VBoxContainer = VBoxContainer.new()
 	root.add_theme_constant_override("separation", 4)
 	add_child(root)
-	var title: Label = Label.new()
-	title.text = "경영  (Esc: 닫기)"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 11)
-	root.add_child(title)
+	root.add_child(PopupTitle.build(self, "경영  (Esc: 닫기)"))
 
 	_stock_button = Button.new()
 	_stock_button.add_theme_font_size_override("font_size", 11)

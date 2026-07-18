@@ -386,9 +386,8 @@ func _menu_button(text: String, handler: Callable) -> Button:
 
 
 func _open_popup(popup: Control) -> void:
-	if get_tree().get_first_node_in_group("modal_ui") != null:
-		popup.queue_free()
-		return
+	for existing: Node in get_tree().get_nodes_in_group("modal_ui"):
+		existing.queue_free()
 	add_child(popup)
 
 
