@@ -36,7 +36,8 @@ func setup(p_eid: int) -> void:
 	_on_changed(eid)
 
 
-## 역할별 구분 톤 (§10.1): 전처리=푸른빛, 조리=주황빛, 서빙=초록빛
+## 역할별 구분 톤 (§10.1): 전처리=푸른빛, 조리=주황빛, 서빙=초록빛,
+## 계산=노란빛, 청소=하늘빛, 정비=잿빛, 매니저=보랏빛
 func _role_tint() -> Color:
 	var emp: EmployeeState = GameServer.employees.get(eid)
 	if emp != null:
@@ -45,6 +46,14 @@ func _role_tint() -> Color:
 				return Color(1.0, 0.85, 0.75)
 			EmployeeDef.Role.SERVE:
 				return Color(0.8, 0.95, 0.8)
+			EmployeeDef.Role.CASHIER:
+				return Color(1.0, 0.95, 0.7)
+			EmployeeDef.Role.CLEAN:
+				return Color(0.75, 0.9, 1.0)
+			EmployeeDef.Role.MAINTAIN:
+				return Color(0.8, 0.8, 0.8)
+			EmployeeDef.Role.MANAGER:
+				return Color(0.9, 0.8, 1.0)
 	return Color(0.85, 0.85, 0.95)
 
 

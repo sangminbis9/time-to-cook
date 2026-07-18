@@ -44,7 +44,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-const ROLE_LABELS: Dictionary = {"prep": "전처리", "cook": "조리", "serve": "서빙"}
+const ROLE_LABELS: Dictionary = {
+	"prep": "전처리", "cook": "조리", "serve": "서빙",
+	"cashier": "계산", "clean": "청소", "maintain": "정비", "manager": "매니저",
+}
 
 ## 재배치 대상 선택 중인 직원 (0 = 일반 목록 표시, §10.5)
 var _transfer_eid: int = 0

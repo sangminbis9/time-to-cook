@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EmployeeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/employee_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"employee.manager.basic"
+display_name_ko = "매니저"
+role = 6
+hire_cost = 10000
+wage_per_day = 4000
+work_interval = 1.2
+move_speed = 2.5

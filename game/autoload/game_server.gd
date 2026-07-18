@@ -381,13 +381,7 @@ func request_station_interact(key: StringName, player_tile: Vector2i) -> void:
 		# 진압(화재)·수리(누수)·청소(미끄러움): 대상 설비에 J 연타 (§23.3)
 		if (etype == "fire" or etype == "leak" or etype == "slippery") \
 				and String(key) == String(s.event.get("station", "")):
-			var hits: int = int(s.event.get("hits", 0)) + 1
-			if hits >= EXTINGUISH_HITS:
-				_apply_store_event.rpc(city_id, {})
-			else:
-				var event: Dictionary = s.event.duplicate(true)
-				event["hits"] = hits
-				_apply_store_event.rpc(city_id, event)
+			_server_event_hit(city_id, s)
 			return
 		if etype == "blackout" and def.kind == StationDef.Kind.FRIDGE:
 			_apply_store_event.rpc(city_id, {})
@@ -498,7 +492,8 @@ func _handle_submit(city_id: String, s: LiveStore, peer: int,
 	if s.orders.count_for(recipe.id) == 0:
 		notify_fail.rpc_id(peer, "no_matching_order")
 		return
-	var price: int = FranchiseState.price_of(recipe)  # 설정 가격 반영 (§8)
+	# 설정 가격 반영 (§8) + 계산 직원 보너스 (§10.1)
+	var price: int = _with_cashier_bonus(city_id, FranchiseState.price_of(recipe))
 	_apply_submit.rpc(city_id, peer, inv.selected, iid, String(recipe.id),
 		price, FranchiseState.money + price)
 
@@ -774,6 +769,18 @@ func server_start_store_event(city_id: String, type: String,
 		event["hits"] = 0
 	s.events_today += 1  # 보험금 산정 (§23.4)
 	_apply_store_event.rpc(city_id, event)
+
+
+## 이벤트 대응 1회 반영 (§23.3): 연타 누적, 규정 횟수 도달 시 해제.
+## 플레이어 J와 청소·정비 직원(§10.1)이 같은 경로를 쓴다 — 협력 가능.
+func _server_event_hit(city_id: String, s: LiveStore) -> void:
+	var hits: int = int(s.event.get("hits", 0)) + 1
+	if hits >= EXTINGUISH_HITS:
+		_apply_store_event.rpc(city_id, {})
+	else:
+		var event: Dictionary = s.event.duplicate(true)
+		event["hits"] = hits
+		_apply_store_event.rpc(city_id, event)
 
 
 func _pick_fryer_key(s: LiveStore) -> StringName:
@@ -1587,6 +1594,10 @@ func _tick_employee(city_id: String, s: LiveStore,
 			_tick_cook(city_id, s, emp)
 		EmployeeDef.Role.SERVE:
 			_tick_serve(city_id, s, emp)
+		EmployeeDef.Role.CLEAN, EmployeeDef.Role.MAINTAIN:
+			_tick_fixer(city_id, s, emp)
+		EmployeeDef.Role.CASHIER, EmployeeDef.Role.MANAGER:
+			pass  # 존재 효과만 (§10.1): 매출 보너스·작업 감독
 		_:
 			_tick_prep(city_id, s, emp)
 
@@ -1639,13 +1650,13 @@ func _tick_prep(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 			board.work_in_progress = true
 			emp.carrying_iid = 0
 			emp.phase = EmployeeState.Phase.CUTTING
-			emp.timer = emp.work_interval
+			emp.timer = _emp_interval(city_id, emp)
 			_apply_station_state.rpc(city_id, EMP_BOARD_KEY, board.item_iid, true)
 			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 		EmployeeState.Phase.CUTTING:
 			if emp.timer > 0.0:
 				return
-			emp.timer = emp.work_interval
+			emp.timer = _emp_interval(city_id, emp)
 			var board: StationState = s.stations.get(EMP_BOARD_KEY)
 			var board_def: StationDef = board.get_def()
 			var item: ItemInstance = items.get(board.item_iid)
@@ -1723,7 +1734,7 @@ func _tick_cook(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 			bread.work_in_progress = true
 			emp.carrying_iid = 0
 			emp.phase = EmployeeState.Phase.BREADING
-			emp.timer = emp.work_interval
+			emp.timer = _emp_interval(city_id, emp)
 			_apply_station_state.rpc(city_id, EMP_BREAD_KEY, bread.item_iid, true)
 			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
 		EmployeeState.Phase.BREADING:
@@ -1894,13 +1905,88 @@ func _tick_serve(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 				emp.phase = EmployeeState.Phase.WAIT_ORDER
 				emp.timer = 0.5
 				return
-			var price: int = FranchiseState.price_of(recipe)
+			var price: int = _with_cashier_bonus(
+				city_id, FranchiseState.price_of(recipe))
 			var iid: int = emp.carrying_iid
 			emp.carrying_iid = 0
 			emp.phase = EmployeeState.Phase.IDLE
 			_apply_employee_submit.rpc(city_id, iid, String(recipe.id),
 				price, FranchiseState.money + price)
 			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+
+
+## 청소·정비 직원 (§10.1): 담당 이벤트 발생 시 대상으로 이동해 자동 대응 (§23.3).
+## 청소=누수·미끄러움, 정비=화재·정전(차단기). 위치 정합은 연출 수준 —
+## 대응 판정은 서버 이벤트 상태 기준(플레이어 연타와 같은 경로, 협력 가능).
+func _tick_fixer(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
+	var etype: String = String(s.event.get("type", ""))
+	var mine: bool = _fixer_handles(emp.role(), etype)
+	match emp.phase:
+		EmployeeState.Phase.IDLE:
+			if _emp_absent(emp) or not mine:
+				return
+			_employee_go(city_id, emp, EmployeeState.Phase.TO_EVENT,
+				_event_tile(s, etype))
+		EmployeeState.Phase.TO_EVENT:
+			if emp.timer > 0.0:
+				return
+			if not mine:  # 이동 중 해결됨
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			emp.phase = EmployeeState.Phase.FIXING
+			emp.timer = _emp_interval(city_id, emp)
+			_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+		EmployeeState.Phase.FIXING:
+			if emp.timer > 0.0:
+				return
+			if not mine:
+				emp.phase = EmployeeState.Phase.IDLE
+				_apply_employee_state.rpc(city_id, emp.to_dict(), FranchiseState.money)
+				return
+			if etype == "blackout":
+				_apply_store_event.rpc(city_id, {})  # 차단기 복구는 1회 (§23.3)
+			else:
+				_server_event_hit(city_id, s)
+			emp.timer = _emp_interval(city_id, emp)
+
+
+func _fixer_handles(role: EmployeeDef.Role, etype: String) -> bool:
+	if role == EmployeeDef.Role.CLEAN:
+		return etype == "leak" or etype == "slippery"
+	return etype == "fire" or etype == "blackout"
+
+
+func _event_tile(s: LiveStore, etype: String) -> Vector2i:
+	if etype == "blackout":
+		return _work_tile_of(s, _fridge_key(s))
+	return _work_tile_of(s, StringName(String(s.event.get("station", ""))))
+
+
+func _fridge_key(s: LiveStore) -> StringName:
+	for key: StringName in s.stations.keys():
+		var st: StationState = s.stations[key]
+		if st.get_def().kind == StationDef.Kind.FRIDGE:
+			return key
+	return StringName()
+
+
+## 계산 직원 (§10.1): 매장에 있으면 제출 매출 +5% (계산·팁 최적화)
+const CASHIER_REVENUE_MULT: float = 1.05
+## 매니저 (§10.1): 매장에 있으면 직원 작업 간격 10% 단축 (감독)
+const MANAGER_INTERVAL_MULT: float = 0.9
+
+
+func _with_cashier_bonus(city_id: String, price: int) -> int:
+	if _city_has_role(city_id, EmployeeDef.Role.CASHIER):
+		return int(roundf(price * CASHIER_REVENUE_MULT))
+	return price
+
+
+func _emp_interval(city_id: String, emp: EmployeeState) -> float:
+	if _city_has_role(city_id, EmployeeDef.Role.MANAGER):
+		return emp.work_interval * MANAGER_INTERVAL_MULT
+	return emp.work_interval
 
 
 ## 직원 재배치 운송 비용 (§10.5): 국가 간 이동이 더 비싸다.

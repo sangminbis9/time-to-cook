@@ -34,6 +34,10 @@ const ROLES: Array[Dictionary] = [
 	{"role": "prep", "def_id": "employee.prep.basic", "label": "전처리"},
 	{"role": "cook", "def_id": "employee.cook.basic", "label": "조리"},
 	{"role": "serve", "def_id": "employee.serve.basic", "label": "서빙"},
+	{"role": "cashier", "def_id": "employee.cashier.basic", "label": "계산"},
+	{"role": "clean", "def_id": "employee.clean.basic", "label": "청소"},
+	{"role": "maintain", "def_id": "employee.maintain.basic", "label": "정비"},
+	{"role": "manager", "def_id": "employee.manager.basic", "label": "매니저"},
 ]
 
 const SURNAMES: Array[String] = ["김", "이", "박", "최", "정", "한", "오", "윤", "장", "임"]

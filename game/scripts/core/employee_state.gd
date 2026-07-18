@@ -10,6 +10,7 @@ enum Phase {
 	TO_PICKUP, TO_BREAD, BREADING, WAIT_FRYER, TO_FRYER, FRYING,
 	TO_SHELF, WAIT_SHELF,
 	TO_SHELF_PICK, TO_SUBMIT, WAIT_ORDER,
+	TO_EVENT, FIXING,  # 청소·정비: 이벤트 대상으로 이동·자동 대응 (§23.3)
 }
 
 var eid: int = 0

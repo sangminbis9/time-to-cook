@@ -111,6 +111,8 @@ func _run() -> void:
 			await _scenario_research()
 		"insurance":
 			await _scenario_insurance()
+		"employee_support":
+			await _scenario_employee_support()
 		"dynamic_economy":
 			await _scenario_dynamic_economy()
 		"econ_events":
@@ -1015,6 +1017,101 @@ func _scenario_insurance() -> void:
 		return GameClock.phase == GameClock.Phase.SETTLEMENT)
 	_check(FranchiseState.money == before - 2000,
 		"해지 후 보험료 없음 (실제 %d)" % FranchiseState.money)
+	_finish(_all_passed(), "")
+
+
+## 지원 역할 4종 (§10.1, 솔로): 청소·정비 자동 이벤트 대응,
+## 계산 매출 보너스, 매니저 작업 간격 단축.
+func _scenario_employee_support() -> void:
+	FranchiseState.set_money(100000)
+	GameClock.service_length = 60.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	var city: String = GameServer.my_city()
+	GameServer.job_candidates = [
+		{"name": "청소테스트", "grade": "A", "trait": "무난함", "wage": 2000,
+			"hire_cost": 4000, "min_days": 0, "work_interval": 0.3,
+			"move_speed": 5.0, "vacation_per_month": 0,
+			"role": "clean", "def_id": "employee.clean.basic"},
+		{"name": "정비테스트", "grade": "A", "trait": "무난함", "wage": 2500,
+			"hire_cost": 6000, "min_days": 0, "work_interval": 0.3,
+			"move_speed": 5.0, "vacation_per_month": 0,
+			"role": "maintain", "def_id": "employee.maintain.basic"},
+		{"name": "계산테스트", "grade": "A", "trait": "무난함", "wage": 2500,
+			"hire_cost": 5000, "min_days": 0, "work_interval": 1.2,
+			"move_speed": 2.5, "vacation_per_month": 0,
+			"role": "cashier", "def_id": "employee.cashier.basic"},
+		{"name": "매니저테스트", "grade": "A", "trait": "무난함", "wage": 4000,
+			"hire_cost": 10000, "min_days": 0, "work_interval": 1.2,
+			"move_speed": 2.5, "vacation_per_month": 0,
+			"role": "manager", "def_id": "employee.manager.basic"},
+	]
+	for i in range(4):
+		GameServer.request_hire_candidate.rpc_id(1, 0)
+		await _sleep(0.1)
+	_check(GameServer.employees.size() == 4, "지원 역할 4명 채용 (실제 %d)"
+		% GameServer.employees.size())
+	# 매니저 감독: 다른 직원 작업 간격 ×0.9
+	var cleaner: EmployeeState = null
+	for eid: int in GameServer.employees.keys():
+		var emp: EmployeeState = GameServer.employees[eid]
+		if emp.role() == EmployeeDef.Role.CLEAN:
+			cleaner = emp
+	_check(cleaner != null and absf(
+		GameServer._emp_interval(city, cleaner) - 0.27) < 0.001,
+		"매니저 감독 — 작업 간격 0.3→0.27")
+	# 가격 설정은 준비 단계 전용 (§8) — 영업 전에 반영
+	GameServer.request_set_price.rpc_id(1, &"recipe.fried_dakgangjeong", 4000)
+	await _sleep(0.2)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	# 청소 직원: 미끄러움 자동 해결
+	GameServer.server_start_store_event(city, "slippery")
+	await _sleep(0.2)
+	_check(String(GameServer.current_store_event().get("type", "")) == "slippery",
+		"미끄러움 발생")
+	await _wait_until(func() -> bool:
+		return GameServer.current_store_event().is_empty())
+	_check(true, "청소 직원이 자동 해결")
+	# 정비 직원: 화재 진압·정전 복구
+	GameServer.server_start_store_event(city, "fire", &"f_1")
+	await _sleep(0.2)
+	await _wait_until(func() -> bool:
+		return GameServer.current_store_event().is_empty())
+	_check(true, "정비 직원이 화재 자동 진압")
+	GameServer.server_start_store_event(city, "blackout")
+	await _sleep(0.2)
+	await _wait_until(func() -> bool:
+		return GameServer.current_store_event().is_empty())
+	_check(true, "정비 직원이 차단기 자동 복구")
+	# 계산 직원: 제출 매출 +5% (설정가 4000 → 4200)
+	GameServer.server_spawn_order(city, &"recipe.fried_dakgangjeong")
+	GameServer.request_station_interact.rpc_id(1, &"i_1", Vector2i(1, 2))
+	GameServer.request_station_interact.rpc_id(1, &"d_1", Vector2i(3, 2))
+	for i in range(6):
+		GameServer.request_station_work.rpc_id(1, &"d_1", Vector2i(3, 2))
+	GameServer.request_station_interact.rpc_id(1, &"d_1", Vector2i(3, 2))
+	GameServer.request_station_interact.rpc_id(1, &"b_1", Vector2i(6, 2))
+	GameServer.request_station_work.rpc_id(1, &"b_1", Vector2i(6, 2))
+	GameServer.request_station_interact.rpc_id(1, &"b_1", Vector2i(6, 2))
+	GameServer.request_station_interact.rpc_id(1, &"f_1", Vector2i(9, 2))
+	var fryer_def: StationDef = Defs.get_def(&"station.fryer.basic") as StationDef
+	await _wait_until(func() -> bool:
+		var st: StationState = GameServer.station(&"f_1")
+		if st == null or st.item_iid == 0:
+			return false
+		var it: ItemInstance = GameServer.get_item(st.item_iid)
+		return it != null and CookStateMachine.state_for(
+			it.cook_elapsed, fryer_def) == CookStateMachine.State.NORMAL)
+	GameServer.request_station_interact.rpc_id(1, &"f_1", Vector2i(9, 2))
+	await _sleep(0.2)
+	var before: int = FranchiseState.money
+	GameServer.request_station_interact.rpc_id(1, &"x_1", Vector2i(9, 6))
+	await _sleep(0.3)
+	_check(FranchiseState.money == before + 4200,
+		"계산 직원 보너스 — 4000×1.05 제출 (실제 +%d)"
+		% (FranchiseState.money - before))
 	_finish(_all_passed(), "")
 
 
