@@ -109,6 +109,8 @@ func _run() -> void:
 			await _scenario_char_info()
 		"research":
 			await _scenario_research()
+		"insurance":
+			await _scenario_insurance()
 		"dynamic_economy":
 			await _scenario_dynamic_economy()
 		"econ_events":
@@ -968,6 +970,51 @@ func _scenario_research() -> void:
 	await _wait_until(func() -> bool:
 		return GameClock.phase == GameClock.Phase.SETTLEMENT)
 	_check(FranchiseState.research_points == 1, "정산 시 연구 포인트 적립")
+	_finish(_all_passed(), "")
+
+
+## 보험 (§23.4, 솔로): 가입 → 이벤트 발생일 정산 보전, 해지 → 보험료 없음.
+func _scenario_insurance() -> void:
+	const CITY: String = "city.korea.incheon"
+	FranchiseState.set_money(50000)
+	GameClock.service_length = 6.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	GameServer.request_toggle_insurance.rpc_id(1)
+	await _sleep(0.2)
+	_check(GameServer.preventions_view().has(GameServer.INSURANCE_KEY), "보험 가입")
+	# 영업 시작 → 화재 강제 발생·진압 (§23.3)
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	GameServer.server_start_store_event(CITY, "fire", &"f_1")
+	await _sleep(0.3)
+	_check(String(GameServer.current_store_event().get("type", "")) == "fire",
+		"화재 발생")
+	for i in range(3):
+		GameServer.request_station_interact.rpc_id(1, &"f_1", Vector2i(9, 2))
+		await _sleep(0.2)
+	_check(GameServer.current_store_event().is_empty(), "진압 완료")
+	# 정산: 임대료 2000 + 보험료 500 - 보험금 2000
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	_check(FranchiseState.money == 50000 - 2000 - 500 + 2000,
+		"정산: 보험료 차감·이벤트 1건 보험금 (실제 %d)" % FranchiseState.money)
+	# 2일차: 해지 → 이벤트 없음 → 보험료·보험금 없음
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.PREP)
+	FranchiseState.city_econ[CITY] = 1.0  # 드리프트 무효화 — 임대료 결정화
+	GameServer.request_toggle_insurance.rpc_id(1)
+	await _sleep(0.2)
+	_check(not GameServer.preventions_view().has(GameServer.INSURANCE_KEY),
+		"보험 해지")
+	var before: int = FranchiseState.money
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SETTLEMENT)
+	_check(FranchiseState.money == before - 2000,
+		"해지 후 보험료 없음 (실제 %d)" % FranchiseState.money)
 	_finish(_all_passed(), "")
 
 

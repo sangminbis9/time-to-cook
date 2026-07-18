@@ -126,6 +126,23 @@ func _refresh() -> void:
 				GameServer.request_buy_prevention.rpc_id(1, buy_id))
 			row.add_child(buy)
 		_rows.add_child(row)
+	# 보험 (§23.4): 가입·해지 자유, 일일 보험료·이벤트당 보상
+	var ins_row: HBoxContainer = HBoxContainer.new()
+	ins_row.add_theme_constant_override("separation", 4)
+	var ins_label: Label = Label.new()
+	ins_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ins_label.add_theme_font_size_override("font_size", 11)
+	ins_label.text = "보험  일 %d원 · 이벤트당 보상 %d원" % [
+		GameServer.INSURANCE_DAILY_FEE, GameServer.INSURANCE_PAYOUT_PER_EVENT]
+	ins_row.add_child(ins_label)
+	var ins_button: Button = Button.new()
+	ins_button.add_theme_font_size_override("font_size", 11)
+	ins_button.text = "해지" \
+		if owned.has(GameServer.INSURANCE_KEY) else "가입"
+	ins_button.pressed.connect(func() -> void:
+		GameServer.request_toggle_insurance.rpc_id(1))
+	ins_row.add_child(ins_button)
+	_rows.add_child(ins_row)
 
 
 func _add_header(text: String) -> void:

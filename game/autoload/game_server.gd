@@ -96,6 +96,12 @@ const PREVENTION_BLOCKS: Dictionary = {
 	"leak": "drainage",
 	"slippery": "antislip",
 }
+## 보험 (§23.4): 매장 단위 가입·해지 자유. 일일 보험료를 정산에서 내고,
+## 그날 매장 이벤트가 발생했으면 건당 보험금으로 손실을 보전한다.
+## 상태는 preventions에 저장(직렬화 공유) — 예방 설비 구매 목록과는 무관한 키.
+const INSURANCE_KEY: String = "insurance"
+const INSURANCE_DAILY_FEE: int = 500
+const INSURANCE_PAYOUT_PER_EVENT: int = 2000
 ## 오늘 예정된 매장 이벤트 (서버 전용 런타임): city_id → {"type", "at"(영업 경과초)}
 var _scheduled_events: Dictionary = {}
 
@@ -766,6 +772,7 @@ func server_start_store_event(city_id: String, type: String,
 			return
 		event["station"] = String(station_key)
 		event["hits"] = 0
+	s.events_today += 1  # 보험금 산정 (§23.4)
 	_apply_store_event.rpc(city_id, event)
 
 
@@ -851,6 +858,29 @@ func _apply_prevention(city_id: String, id: String, new_money: int) -> void:
 	if s != null:
 		s.preventions[id] = true
 	ready_state_changed.emit()  # 준비 팝업 리프레시
+
+
+## 보험 가입·해지 토글 (§23.4 — 준비 단계, 내 매장)
+@rpc("any_peer", "call_local", "reliable")
+func request_toggle_insurance() -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var city_id: String = city_of_peer(_sender())
+	var s: LiveStore = live.get(city_id)
+	if s == null:
+		return
+	_apply_insurance.rpc(city_id, not s.preventions.has(INSURANCE_KEY))
+
+
+@rpc("authority", "call_local", "reliable")
+func _apply_insurance(city_id: String, on: bool) -> void:
+	var s: LiveStore = live.get(city_id)
+	if s != null:
+		if on:
+			s.preventions[INSURANCE_KEY] = true
+		else:
+			s.preventions.erase(INSURANCE_KEY)
+	ready_state_changed.emit()
 
 
 ## 내 매장의 보유 예방 설비 (뷰 전용 — 수정 금지)
@@ -2078,6 +2108,8 @@ func on_service_time_over() -> void:
 	var wages: int = 0
 	var revenue: int = 0
 	var stock_wasted: int = 0
+	var insurance_fee: int = 0
+	var insurance_payout: int = 0
 	for city_id: String in live.keys():
 		var s: LiveStore = live[city_id]
 		disposed += _count_disposable(s)
@@ -2085,6 +2117,10 @@ func on_service_time_over() -> void:
 			wages += (s.employees[eid] as EmployeeState).wage
 		revenue += s.revenue_today
 		stock_wasted += s.ingredient_stock
+		# 보험 (§23.4): 가입 매장은 보험료를 내고, 이벤트 발생분을 보전받는다
+		if s.preventions.has(INSURANCE_KEY):
+			insurance_fee += INSURANCE_DAILY_FEE
+			insurance_payout += s.events_today * INSURANCE_PAYOUT_PER_EVENT
 	# 플레이어 인벤토리는 매장이 아니라 플레이어 귀속 — 별도 합산
 	for peer: int in inventories.keys():
 		disposed += (inventories[peer] as InventoryState).all_iids().size()
@@ -2107,7 +2143,7 @@ func on_service_time_over() -> void:
 		rent += current_rent(city_id)
 	# 만기 도래 대출 (§9): 원금+만기 이자 일괄 납부, 자금 부족 시 연체 전환
 	var money_left: int = FranchiseState.money + offline_revenue \
-		- wages - interest - rent
+		- wages - interest - rent - insurance_fee + insurance_payout
 	var maturity_paid: int = 0
 	var remaining_loans: Array = []
 	for loan: Variant in FranchiseState.loans.duplicate(true):
@@ -2129,6 +2165,8 @@ func on_service_time_over() -> void:
 		"wages": wages,
 		"interest": interest,
 		"rent": rent,
+		"insurance_fee": insurance_fee,
+		"insurance_payout": insurance_payout,
 		"maturity": maturity_paid,
 		"loans": remaining_loans,
 		"new_money": money_left,
@@ -2496,6 +2534,7 @@ func _apply_settlement(summary: Dictionary) -> void:
 		s.orders.clear()
 		s.ingredient_stock = 0  # 잔여 재료 폐기 (§21.1 과다 주문 위험)
 		s.event = {}  # 마감과 함께 이벤트 해제 (§23.1)
+		s.events_today = 0  # 보험 정산 소비 완료 (§23.4)
 	for peer: int in inventories.keys():
 		var inv: InventoryState = inventories[peer]
 		for iid: int in inv.all_iids():

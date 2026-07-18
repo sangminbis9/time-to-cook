@@ -331,6 +331,10 @@ func _on_day_settled(summary: Dictionary) -> void:
 		text += "\n급여  -%d원" % int(summary["wages"])
 	if int(summary.get("rent", 0)) > 0:
 		text += "\n임대료  -%d원" % int(summary["rent"])
+	if int(summary.get("insurance_fee", 0)) > 0:
+		text += "\n보험료  -%d원" % int(summary["insurance_fee"])
+	if int(summary.get("insurance_payout", 0)) > 0:
+		text += "\n보험금  +%d원" % int(summary["insurance_payout"])
 	if int(summary.get("interest", 0)) > 0:
 		text += "\n대출 이자  -%d원" % int(summary["interest"])
 	if int(summary.get("maturity", 0)) > 0:

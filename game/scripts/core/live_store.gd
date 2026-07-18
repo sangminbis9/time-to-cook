@@ -27,7 +27,11 @@ var next_order_in: float = 0.0
 ## 누수/미끄러움: {"type": "leak"|"slippery", "station": String, "hits": int}
 var event: Dictionary = {}
 ## 보유한 예방 설비 (§23.4): id → true. 매장 귀속, 되팔기 없음.
+## 보험 가입도 "insurance" 키로 여기에 저장된다 (직렬화 공유).
 var preventions: Dictionary = {}
+## 오늘 발생한 매장 이벤트 수 — 보험금 산정용 (§23.4).
+## 서버 전용 휘발성: 정산에서 소비·리셋, 직렬화하지 않는다.
+var events_today: int = 0
 
 
 ## 레이아웃 템플릿에서 새 매장 구축 (모든 매장 동일 레이아웃 — 슬라이스 단순화)
