@@ -503,8 +503,9 @@ func _handle_submit(city_id: String, s: LiveStore, peer: int,
 	if s.orders.count_for(recipe.id) == 0:
 		notify_fail.rpc_id(peer, "no_matching_order")
 		return
-	# 설정 가격 반영 (§8) + 계산 직원 보너스 (§10.1)
-	var price: int = _with_cashier_bonus(city_id, FranchiseState.price_of(recipe))
+	# 설정 가격 반영 (§8) + 계산 직원 보너스 (§10.1) + 서비스 전문 (§11)
+	var price: int = _with_service_bonus(peer,
+		_with_cashier_bonus(city_id, FranchiseState.price_of(recipe)))
 	_apply_submit.rpc(city_id, peer, inv.selected, iid, String(recipe.id),
 		price, FranchiseState.money + price)
 
@@ -636,6 +637,7 @@ const SAUCE_TABLE_RECIPES: Dictionary = {
 	&"station.sauce_table": &"recipe.sweet_dakgangjeong",
 	&"station.spicy_table": &"recipe.spicy_dakgangjeong",
 	&"station.soy_table": &"recipe.soy_dakgangjeong",
+	&"station.garlic_table": &"recipe.garlic_dakgangjeong",
 }
 
 
@@ -662,6 +664,7 @@ const STATION_PRICES: Dictionary = {
 	&"station.sauce_table": 8000,
 	&"station.spicy_table": 8000,
 	&"station.soy_table": 8000,
+	&"station.garlic_table": 8000,
 }
 
 
@@ -1315,19 +1318,53 @@ func request_repay_loan(lid: int) -> void:
 
 
 # ── 캐릭터·스킬 (PLAN.md §11) ───────────────────────────────────────
-## 슬라이스: 캐릭터 선택 씬 없이 자동 배정 — 호스트=미트(전처리), 게스트=살구(운반).
+## 기본 배정 호스트=미트(전처리), 게스트=살구(운반) — 준비 단계에 선택 변경 가능
+## (§11.1의 "세이브 생성 시 선택"을 선택 씬 없이 준비 단계 선택으로 대체, 중복 불가).
 ## 능력은 해당 캐릭터의 직접 행동에만 영향 (§11.3 — 직원·자동화 매출 무관).
 
 signal skill_changed(peer: int)
+signal character_changed
+
+const DEFAULT_PICKS: Dictionary = {"1": "char.mint", "2": "char.apricot"}
 
 ## 액티브 스킬 상태 (§11.4): peer → {"until": float, "cooldown_until": float}.
 ## service_elapsed 기준이라 준비·정산에서는 자연히 시간이 정지한다.
 var skill_states: Dictionary = {}
 
 
+func _char_slot(peer: int) -> String:
+	return "1" if peer == 1 else "2"
+
+
 func character_of(peer: int) -> CharacterDef:
-	var id: StringName = &"char.mint" if peer == 1 else &"char.apricot"
-	return Defs.get_def(id) as CharacterDef
+	var slot: String = _char_slot(peer)
+	var id: String = String(FranchiseState.character_picks.get(
+		slot, DEFAULT_PICKS[slot]))
+	return Defs.get_def(StringName(id)) as CharacterDef
+
+
+## 캐릭터 선택 (§11.1): 준비 단계 전용, 다른 슬롯과 중복 불가.
+@rpc("any_peer", "call_local", "reliable")
+func request_select_character(char_id: StringName) -> void:
+	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+		return
+	var peer: int = _sender()
+	if not (Defs.has_def(char_id) and Defs.get_def(char_id) is CharacterDef):
+		return
+	var slot: String = _char_slot(peer)
+	var other: String = "2" if slot == "1" else "1"
+	var other_id: String = String(FranchiseState.character_picks.get(
+		other, DEFAULT_PICKS[other]))
+	if other_id == String(char_id):
+		notify_fail.rpc_id(peer, "char_taken")
+		return
+	_apply_character.rpc(slot, String(char_id))
+
+
+@rpc("authority", "call_local", "reliable")
+func _apply_character(slot: String, char_id: String) -> void:
+	FranchiseState.character_picks[slot] = char_id
+	character_changed.emit()
 
 
 func skill_active(peer: int) -> bool:
@@ -1430,6 +1467,7 @@ const STATION_RESEARCH: Dictionary = {
 	&"station.sauce_table": "research.sauce_base",
 	&"station.spicy_table": "research.spicy_sauce",
 	&"station.soy_table": "research.soy_sauce",
+	&"station.garlic_table": "research.garlic_sauce",
 }
 const PREVENTION_RESEARCH: String = "research.safety"
 const AD_RESEARCH: Dictionary = {
@@ -2036,6 +2074,15 @@ func _with_cashier_bonus(city_id: String, price: int) -> int:
 	if _city_has_role(city_id, EmployeeDef.Role.CASHIER):
 		return int(roundf(price * CASHIER_REVENUE_MULT))
 	return price
+
+
+## 서비스 전문 캐릭터의 본인 제출 매출 배율 (§11.3 — 직접 행동에만 적용)
+func _with_service_bonus(peer: int, price: int) -> int:
+	var c: CharacterDef = character_of(peer)
+	var mult: float = c.submit_bonus_mult
+	if skill_active(peer):
+		mult *= c.skill_submit_mult
+	return int(roundf(price * mult))
 
 
 func _emp_interval(city_id: String, emp: EmployeeState) -> float:

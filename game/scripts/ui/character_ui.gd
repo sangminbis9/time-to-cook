@@ -14,8 +14,8 @@ func _ready() -> void:
 	anchor_bottom = 0.5
 	offset_left = -150.0
 	offset_right = 150.0
-	offset_top = -80.0
-	offset_bottom = 80.0
+	offset_top = -130.0
+	offset_bottom = 130.0
 
 	var root: VBoxContainer = VBoxContainer.new()
 	root.add_theme_constant_override("separation", 4)
@@ -26,6 +26,7 @@ func _ready() -> void:
 	root.add_child(_rows)
 
 	GameServer.ready_state_changed.connect(_refresh)
+	GameServer.character_changed.connect(_refresh)
 	FranchiseState.money_changed.connect(func(_m: int) -> void: _refresh())
 	GameClock.phase_changed.connect(func(phase: GameClock.Phase) -> void:
 		if phase != GameClock.Phase.PREP:
@@ -44,14 +45,15 @@ func _refresh() -> void:
 		child.queue_free()
 	var c: CharacterDef = GameServer.character_of(multiplayer.get_unique_id())
 	var level: int = FranchiseState.char_upgrade_level(String(c.id))
-	var specialty: String = "전처리" \
-		if c.specialty == CharacterDef.Specialty.PREP else "이동·운반"
-	_add_line("%s — 전문: %s" % [c.display_name_ko, specialty])
+	_add_line("%s — 전문: %s" % [c.display_name_ko, _specialty_ko(c)])
 	_add_line(c.backstory_ko)
 	if c.cut_per_work > 1:
 		_add_line("패시브: 칼질 1회당 %d회 진행" % c.cut_per_work)
 	if c.move_speed_mult > 1.0:
 		_add_line("패시브: 이동속도 +%d%%" % int((c.move_speed_mult - 1.0) * 100))
+	if c.submit_bonus_mult > 1.0:
+		_add_line("패시브: 본인 제출 매출 +%d%%" % int(
+			roundf((c.submit_bonus_mult - 1.0) * 100)))
 	var duration: float = c.skill_duration + c.upgrade_duration_bonus * level
 	_add_line("스킬(L): %s — %.0f초 지속 · 쿨다운 %.0f초" % [
 		c.skill_name_ko, duration, c.skill_cooldown])
@@ -70,6 +72,40 @@ func _refresh() -> void:
 		_rows.add_child(buy)
 	else:
 		_add_line("업그레이드 완료 (%d/%d)" % [level, c.upgrade_costs.size()])
+	# 캐릭터 선택 (§11.1): 준비 단계 전용, 상대가 쓰는 캐릭터는 선택 불가
+	_add_line("── 캐릭터 선택 ──")
+	var my_slot: String = "1" if multiplayer.get_unique_id() == 1 else "2"
+	var other_slot: String = "2" if my_slot == "1" else "1"
+	var other_id: String = String(FranchiseState.character_picks.get(
+		other_slot, GameServer.DEFAULT_PICKS[other_slot]))
+	for def_id: StringName in Defs.all_ids():
+		var def: Resource = Defs.get_def(def_id)
+		if not (def is CharacterDef):
+			continue
+		var cand: CharacterDef = def as CharacterDef
+		var pick: Button = Button.new()
+		pick.add_theme_font_size_override("font_size", 11)
+		pick.text = "%s (%s)" % [cand.display_name_ko, _specialty_ko(cand)]
+		if cand.id == c.id:
+			pick.text += " — 사용 중"
+			pick.disabled = true
+		elif String(cand.id) == other_id:
+			pick.text += " — 상대 사용 중"
+			pick.disabled = true
+		var cand_id: StringName = cand.id
+		pick.pressed.connect(func() -> void:
+			GameServer.request_select_character.rpc_id(1, cand_id))
+		_rows.add_child(pick)
+
+
+func _specialty_ko(c: CharacterDef) -> String:
+	match c.specialty:
+		CharacterDef.Specialty.PREP:
+			return "전처리"
+		CharacterDef.Specialty.TRANSPORT:
+			return "이동·운반"
+		_:
+			return "서비스"
 
 
 func _add_line(text: String) -> void:

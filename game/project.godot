@@ -24,6 +24,7 @@ GameServer="*res://autoload/game_server.gd"
 FranchiseState="*res://autoload/franchise_state.gd"
 SaveService="*res://autoload/save_service.gd"
 SceneRouter="*res://autoload/scene_router.gd"
+SoundFx="*res://autoload/sound_fx.gd"
 NetTest="*res://autoload/net_test.gd"
 
 [debug]

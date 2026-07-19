@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"char.basil"
+display_name_ko = "바질"
+specialty = 2
+backstory_ko = "홀 서빙 10년 — 손님 얼굴만 봐도 주문이 보인다."
+cut_per_work = 1
+move_speed_mult = 1.0
+submit_bonus_mult = 1.05
+skill_name_ko = "만점 응대"
+skill_duration = 8.0
+skill_cooldown = 20.0
+skill_cut_bonus = 0
+skill_speed_mult = 1.0
+skill_submit_mult = 1.25
+upgrade_costs = Array[int]([20000, 40000])
+upgrade_duration_bonus = 3.0

@@ -20,6 +20,7 @@ func test_table_output_matches_recipe() -> void:
 
 func test_variant_prereq_is_sauce_base() -> void:
 	# 변형 양념은 기본 양념 연구가 선행 (§19.1 "이후 연구로 추가")
-	for rid: StringName in [&"research.spicy_sauce", &"research.soy_sauce"]:
+	for rid: StringName in [&"research.spicy_sauce", &"research.soy_sauce",
+			&"research.garlic_sauce"]:
 		var def: ResearchDef = Defs.get_def(rid) as ResearchDef
 		assert_true(def.prereq.has(&"research.sauce_base"), "%s 선행" % rid)

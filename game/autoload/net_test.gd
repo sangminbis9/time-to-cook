@@ -1362,6 +1362,16 @@ func _scenario_character_skill() -> void:
 	GameClock.service_length = 30.0
 	GameServer.order_interval_min = 9999.0
 	GameServer.order_interval_max = 9999.0
+	# 캐릭터 선택 (§11.1): 게스트 기본(살구) 중복 거부 → 바질 선택 → 원복
+	GameServer.request_select_character.rpc_id(1, &"char.apricot")
+	await _sleep(0.2)
+	_check(String(GameServer.character_of(1).id) == "char.mint",
+		"중복 선택 거부 — 미트 유지")
+	GameServer.request_select_character.rpc_id(1, &"char.basil")
+	await _sleep(0.2)
+	_check(String(GameServer.character_of(1).id) == "char.basil", "바질 선택 반영")
+	GameServer.request_select_character.rpc_id(1, &"char.mint")
+	await _sleep(0.2)
 	var c: CharacterDef = GameServer.character_of(1)
 	_check(String(c.id) == "char.mint", "호스트 캐릭터 = 미트")
 	# 영구 업그레이드 (§11.5): 1단계 20000원 → 스킬 지속 +3초
@@ -1615,6 +1625,13 @@ func _scenario_sauce_menu() -> void:
 		"매운 양념대 구매 8000 차감 (실제 %d)" % FranchiseState.money)
 	_check(GameServer.sellable_recipes(GameServer.live[city]).size() == 3,
 		"매운 양념대 보유 — 판매 메뉴 3종")
+	FranchiseState.research["research.garlic_sauce"] = true
+	GameServer.request_buy_station.rpc_id(1, &"station.garlic_table", Vector2i(6, 5))
+	await _sleep(0.2)
+	_check(FranchiseState.money == 26000,
+		"마늘 양념대 구매 8000 차감 (실제 %d)" % FranchiseState.money)
+	_check(GameServer.sellable_recipes(GameServer.live[city]).size() == 4,
+		"마늘 양념대 보유 — 판매 메뉴 4종")
 	var sauce_key: StringName = GameServer.station_key_at(Vector2i(2, 5))
 	_check(sauce_key != StringName(), "양념대 배치 확인")
 	GameServer.request_set_price.rpc_id(1, &"recipe.sweet_dakgangjeong", 4300)

@@ -233,3 +233,7 @@ func _on_cook() -> void:
 	var target_type: InteractionSelector.TargetType = target["type"]
 	if target_type == InteractionSelector.TargetType.STATION:
 		GameServer.request_station_work.rpc_id(1, target["station_key"], tile_pos())
+		# 칼질·양념 손맛 (§34): 아이템이 놓인 설비 K 작업에만 즉시 재생
+		var st: StationState = GameServer.station(target["station_key"])
+		if st != null and st.item_iid != 0:
+			SoundFx.play(&"cut")

@@ -20,6 +20,7 @@ const FAIL_MESSAGES: Dictionary = {
 	"market_scammed": "정보상에게 사기를 당했습니다!",
 	"broker_gone": "정보상과 연락이 닿지 않습니다",
 	"no_info_ability": "정보 능력이 없는 캐릭터입니다",
+	"char_taken": "상대가 사용 중인 캐릭터입니다",
 	"info_cooldown": "정보망을 아직 다시 쓸 수 없습니다",
 	"research_required": "먼저 연구가 필요합니다",
 	"research_prereq": "선행 연구가 필요합니다",

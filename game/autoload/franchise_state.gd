@@ -8,7 +8,8 @@ signal money_changed(money: int)
 const STARTING_MONEY: int = 50000
 
 var money: int = 0
-## peer_id → 캐릭터 ID (수직 슬라이스에서는 자리만 확보)
+## 캐릭터 배정 (§11.1): 슬롯("1"=호스트/"2"=게스트) → char_id(String).
+## 비어 있으면 기본 배정(미트/살구). 준비 단계에서만 변경 가능, 중복 선택 불가.
 var character_picks: Dictionary = {}
 ## 메뉴 판매가 설정 (§8): recipe_id(String) → 원. 없으면 기본가.
 var menu_prices: Dictionary = {}
@@ -87,6 +88,7 @@ func to_dict() -> Dictionary:
 		"city_econ": city_econ.duplicate(),
 		"city_events": city_events.duplicate(true),
 		"ad_campaigns": ad_campaigns.duplicate(true),
+		"character_picks": character_picks.duplicate(),
 		"char_upgrades": char_upgrades.duplicate(),
 		"char_info_day": char_info_day.duplicate(),
 		"research": research.duplicate(),
@@ -113,6 +115,7 @@ func from_dict(data: Dictionary) -> void:
 	city_econ = data.get("city_econ", {})
 	city_events = data.get("city_events", {})
 	ad_campaigns = data.get("ad_campaigns", {})
+	character_picks = data.get("character_picks", {})
 	char_upgrades = data.get("char_upgrades", {})
 	char_info_day = data.get("char_info_day", {})
 	research = data.get("research", {})
