@@ -25,7 +25,7 @@ const FAIL_MESSAGES: Dictionary = {
 	"research_required": "먼저 연구가 필요합니다",
 	"research_prereq": "선행 연구가 필요합니다",
 	"no_research_points": "연구 포인트가 부족합니다",
-	"station_on_fire": "불이 붙었습니다! J로 진압하세요",
+	"station_on_fire": "불이 붙었습니다! 좌클릭으로 진압하세요",
 	"invalid_spot": "그 자리에는 놓을 수 없습니다",
 	"store_full": "매장 직원 정원이 가득 찼습니다",
 	"already_owned": "이미 보유하고 있습니다",
@@ -301,30 +301,30 @@ func _refresh_event_banner() -> void:
 	var event: Dictionary = GameServer.current_store_event()
 	match String(event.get("type", "")):
 		"fire":
-			_event_banner.text = "⚠ 화재 발생! 불붙은 튀김기에 J 연타 (%d/%d)" % [
+			_event_banner.text = "⚠ 화재 발생! 불붙은 튀김기에 좌클릭 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
 		"blackout":
-			_event_banner.text = "⚠ 정전! 냉장고 옆 차단기를 J로 복구하세요"
+			_event_banner.text = "⚠ 정전! 냉장고 옆 차단기를 좌클릭으로 복구하세요"
 			_event_banner.visible = true
 		"leak":
-			_event_banner.text = "⚠ 누수 발생! 젖은 설비에 J 연타 (%d/%d)" % [
+			_event_banner.text = "⚠ 누수 발생! 젖은 설비에 좌클릭 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
 		"slippery":
-			_event_banner.text = "⚠ 바닥이 미끄럽습니다! 엎지른 곳에 J 연타 (%d/%d)" % [
+			_event_banner.text = "⚠ 바닥이 미끄럽습니다! 엎지른 곳에 좌클릭 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
 		"vent":
-			_event_banner.text = "⚠ 환기 고장! 표시된 설비에 J 연타 (%d/%d)" % [
+			_event_banner.text = "⚠ 환기 고장! 표시된 설비에 좌클릭 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
 		"breakdown":
-			_event_banner.text = "⚠ 장비 고장! 멈춘 튀김기에 J 연타 (%d/%d)" % [
+			_event_banner.text = "⚠ 장비 고장! 멈춘 튀김기에 좌클릭 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
 		"debris":
-			_event_banner.text = "⚠ 통로 막힘! 잔해 옆에서 J 연타 (%d/%d)" % [
+			_event_banner.text = "⚠ 통로 막힘! 잔해 옆에서 좌클릭 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
 		_:

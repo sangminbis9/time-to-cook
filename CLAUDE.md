@@ -78,7 +78,7 @@ layout이 아니라 매장별 `placements`다.
 - 직원 설비 점유는 `s.station_employee`를 직접 set/erase하지 말 것 — 위상(phase)에서
   `_reserved_keys`로 유도·재구축된다.
 - 매장 이벤트는 `s.event` Dictionary 하나(매장당 동시 1건). 발생은
-  `server_start_store_event`, 대응은 J 연타 → `_server_event_hit`(플레이어와 청소·정비 직원
+  `server_start_store_event`, 대응은 상호작용(좌클릭) 연타 → `_server_event_hit`(플레이어와 청소·정비 직원
   `_tick_fixer`가 같은 경로). 이벤트 중 주문 스폰 정지. 정산이 `s.event = {}`로 직접 지우므로
   이벤트가 부수 상태(grid 등)를 건드리면 안 된다 — 통로 막힘(debris)이 grid.blocked 대신
   이동 판정에서 이벤트를 참조하는 이유.

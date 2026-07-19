@@ -78,6 +78,10 @@ func _modal_open() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_multiplayer_authority() or _modal_open():
 		return
+	# 설비 배치 모드 중에는 클릭이 배치·취소 전용 (store_gameplay가 처리)
+	var scene: Node = get_tree().get_first_node_in_group("store_scene")
+	if scene != null and scene.edit_active():
+		return
 	if event.is_action_pressed("interact"):
 		_on_interact()
 	elif event.is_action_pressed("cook"):
@@ -197,7 +201,7 @@ func _process_targeting() -> void:
 			var d: Vector2i = (debris - tile_pos()).abs()
 			if maxi(d.x, d.y) <= 2:
 				_prompt.visible = true
-				_prompt.text = "J: 잔해 제거"
+				_prompt.text = "좌클릭: 잔해 제거"
 				return
 		_prompt.visible = false
 		return
@@ -212,7 +216,7 @@ func _process_targeting() -> void:
 func _prompt_for(target: Dictionary) -> String:
 	var target_type: InteractionSelector.TargetType = target["type"]
 	if target_type == InteractionSelector.TargetType.FLOOR_ITEM:
-		return "J: 상호작용"
+		return "좌클릭: 상호작용"
 	var st: StationState = GameServer.station(target["station_key"])
 	# 매장 이벤트 대응 안내 (§23.3)
 	var event: Dictionary = GameServer.current_store_event()
@@ -221,29 +225,29 @@ func _prompt_for(target: Dictionary) -> String:
 		var debris: Vector2i = event.get("tile", Vector2i.MAX)
 		var d: Vector2i = (debris - tile_pos()).abs()
 		if maxi(d.x, d.y) <= 2:
-			return "J: 잔해 제거"
+			return "좌클릭: 잔해 제거"
 	if String(target["station_key"]) == String(event.get("station", "")):
 		if etype == "fire":
-			return "J: 진압!"
+			return "좌클릭: 진압!"
 		if etype == "leak":
-			return "J: 수리"
+			return "좌클릭: 수리"
 		if etype == "slippery":
-			return "J: 청소"
+			return "좌클릭: 청소"
 	if etype == "blackout" and st != null \
 			and st.get_def().kind == StationDef.Kind.FRIDGE:
-		return "J: 차단기 복구"
+		return "좌클릭: 차단기 복구"
 	if st == null or st.is_empty():
-		return "J: 상호작용"
+		return "좌클릭: 상호작용"
 	var def: StationDef = st.get_def()
 	var item: ItemInstance = GameServer.get_item(st.item_iid)
 	if item != null:
 		if def.kind == StationDef.Kind.CUTTING_BOARD \
 				and not CutProgress.is_complete(item, def):
-			return "K: 조리"
+			return "우클릭: 조리"
 		if def.kind == StationDef.Kind.BREADING_TABLE \
 				and def.work_output.has(item.def_id):
-			return "K: 조리"
-	return "J: 상호작용"
+			return "우클릭: 조리"
+	return "좌클릭: 상호작용"
 
 
 func _on_interact() -> void:
