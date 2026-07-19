@@ -6,13 +6,23 @@ extends RefCounted
 
 enum State { UNDERDONE, NORMAL, OVERCOOKED, BURNT }
 
+## 튀김기 타이머 연구 (§20 장비): NORMAL 유지·탄 시점을 함께 늦춘다
+const FRYER_TIMER_RESEARCH: String = "research.fryer_timer"
+const FRYER_TIMER_BONUS: float = 3.0
+
+
+static func _timer_bonus() -> float:
+	return FRYER_TIMER_BONUS \
+		if FranchiseState.research_done(FRYER_TIMER_RESEARCH) else 0.0
+
 
 static func state_for(elapsed: float, def: StationDef) -> State:
+	var bonus: float = _timer_bonus()
 	if elapsed < def.cook_seconds:
 		return State.UNDERDONE
-	if elapsed < def.cook_seconds + def.normal_window_seconds:
+	if elapsed < def.cook_seconds + def.normal_window_seconds + bonus:
 		return State.NORMAL
-	if elapsed < def.burn_after_seconds:
+	if elapsed < def.burn_after_seconds + bonus:
 		return State.OVERCOOKED
 	return State.BURNT
 

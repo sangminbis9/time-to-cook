@@ -94,6 +94,37 @@ SOUNDS = {
 }
 
 
+def bgm_loop() -> list:
+    """따뜻한 배경음 루프 (§34): C-Am-F-G 패드 + 부드러운 아르페지오, 16초."""
+    chord_len = 4.0
+    chords = [
+        [261.63, 329.63, 392.00],   # C
+        [220.00, 261.63, 329.63],   # Am
+        [174.61, 220.00, 261.63],   # F
+        [196.00, 246.94, 293.66],   # G
+    ]
+    total = int(SR * chord_len * len(chords))
+    out = [0.0] * total
+    for ci, chord in enumerate(chords):
+        base = int(SR * chord_len * ci)
+        n = int(SR * chord_len)
+        # 패드: 느린 어택·릴리즈 사인 화음
+        for freq in chord:
+            for i in range(n):
+                t = i / SR
+                e = min(1.0, t / 0.8) * min(1.0, (chord_len - t) / 0.8)
+                out[base + i] += 0.05 * e * math.sin(2 * math.pi * freq * t)
+        # 아르페지오: 옥타브 위 음을 박자마다 하나씩
+        for step in range(4):
+            note = chord[step % len(chord)] * 2.0
+            start = base + int(SR * step * (chord_len / 4))
+            pluck = tone(note, 0.8, 0.07, decay=5.0, attack=0.01)
+            for i, v in enumerate(pluck):
+                if start + i < total:
+                    out[start + i] += v
+    return out
+
+
 def write_wav(path: Path, samples: list) -> None:
     with wave.open(str(path), "wb") as f:
         f.setnchannels(1)
@@ -112,6 +143,9 @@ def main() -> None:
         path = out_dir / f"{name}.wav"
         write_wav(path, gen())
         print(f"{path} ({path.stat().st_size} bytes)")
+    bgm_path = out_dir / "bgm.wav"
+    write_wav(bgm_path, bgm_loop())
+    print(f"{bgm_path} ({bgm_path.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":

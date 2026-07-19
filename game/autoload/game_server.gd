@@ -79,6 +79,7 @@ var event_leak_chance: float = 0.08
 var event_slippery_chance: float = 0.08
 var event_vent_chance: float = 0.05
 var event_breakdown_chance: float = 0.05
+var event_debris_chance: float = 0.05
 ## 튀김기에서 음식이 타면 이 확률로 화재 (대응 가능한 원인 — 태우지 말 것)
 var event_burnt_fire_chance: float = 0.35
 ## 이벤트 대응에 필요한 상호작용(J) 횟수 (§23.3 소화기·수리·청소)
@@ -92,6 +93,7 @@ const PREVENTION_PRICES: Dictionary = {
 	"antislip": 8000,
 	"vent": 10000,
 	"maintenance": 12000,
+	"exit": 8000,
 }
 ## 이벤트 type → 이를 원천 차단하는 예방 설비 id
 const PREVENTION_BLOCKS: Dictionary = {
@@ -101,6 +103,7 @@ const PREVENTION_BLOCKS: Dictionary = {
 	"slippery": "antislip",
 	"vent": "vent",
 	"breakdown": "maintenance",
+	"debris": "exit",
 }
 ## 보험 (§23.4): 매장 단위 가입·해지 자유. 일일 보험료를 정산에서 내고,
 ## 그날 매장 이벤트가 발생했으면 건당 보험금으로 손실을 보전한다.
@@ -620,8 +623,8 @@ func _tick_order_spawner(city_id: String, s: LiveStore, delta: float) -> void:
 	s.next_order_in = randf_range(order_interval_min, order_interval_max) / eff
 	if s.orders.active.size() >= s.orders.max_active:
 		return
-	# 판매 가능 메뉴 중 무작위 (§19.1) + 가격 민감도 (§6.6)
-	var menu: Array[RecipeDef] = sellable_recipes(s)
+	# 판매 가능 메뉴 중 무작위 (§19.1) + 지역 선호 가중 + 가격 민감도 (§6.6)
+	var menu: Array[RecipeDef] = order_candidates(s, city)
 	var recipe: RecipeDef = menu[market_rng.randi_range(0, menu.size() - 1)]
 	var accept: float = CityEconomy.acceptance(
 		FranchiseState.price_of(recipe), recipe.base_price, city.price_sensitivity)
@@ -650,6 +653,17 @@ func sellable_recipes(s: LiveStore) -> Array[RecipeDef]:
 		if SAUCE_TABLE_RECIPES.has(def_id) and not seen.has(def_id):
 			seen[def_id] = true
 			menu.append(Defs.get_def(SAUCE_TABLE_RECIPES[def_id]) as RecipeDef)
+	return menu
+
+
+## 주문 추첨 후보 (§19.1 지역별 변형): 도시 선호 메뉴가 판매 중이면
+## 한 번 더 넣어 확률 2배로 가중한다.
+func order_candidates(s: LiveStore, city: CityDef) -> Array[RecipeDef]:
+	var menu: Array[RecipeDef] = sellable_recipes(s)
+	if city != null and city.preferred_recipe != &"":
+		for recipe: RecipeDef in menu.duplicate():
+			if recipe.id == city.preferred_recipe:
+				menu.append(recipe)
 	return menu
 
 
@@ -766,7 +780,8 @@ func current_store_event() -> Dictionary:
 ## 서버 전용: 매장 이벤트 시작 (일일 스케줄·태운 음식 점화·테스트 공용).
 ## 화재는 대상 튀김기의 아이템을 태워 없앤다.
 func server_start_store_event(city_id: String, type: String,
-		station_key: StringName = StringName()) -> void:
+		station_key: StringName = StringName(),
+		tile: Vector2i = Vector2i.MAX) -> void:
 	assert(is_server())
 	var s: LiveStore = live.get(city_id)
 	if s == null or not s.event.is_empty():
@@ -801,6 +816,14 @@ func server_start_store_event(city_id: String, type: String,
 			return
 		event["station"] = String(station_key)
 		event["hits"] = 0
+	elif type == "debris":
+		# 통로 막힘 (§23.1): 빈 바닥에 잔해 — 진입 차단, J 연타 제거 (§23.3)
+		if tile == Vector2i.MAX:
+			tile = _pick_debris_tile(s)
+		if tile == Vector2i.MAX:
+			return
+		event["tile"] = tile
+		event["hits"] = 0
 	s.events_today += 1  # 보험금 산정 (§23.4)
 	_apply_store_event.rpc(city_id, event)
 
@@ -828,6 +851,17 @@ func _pick_fryer_key(s: LiveStore) -> StringName:
 	return fryers[market_rng.randi_range(0, fryers.size() - 1)]
 
 
+func _pick_debris_tile(s: LiveStore) -> Vector2i:
+	var tiles: Array[Vector2i] = []
+	for tile: Vector2i in s.grid.walkable.keys():
+		if s.grid.is_free(tile):
+			tiles.append(tile)
+	if tiles.is_empty():
+		return Vector2i.MAX
+	tiles.sort()
+	return tiles[market_rng.randi_range(0, tiles.size() - 1)]
+
+
 func _pick_station_key(s: LiveStore) -> StringName:
 	var keys: Array[StringName] = []
 	for key: StringName in s.stations.keys():
@@ -836,6 +870,21 @@ func _pick_station_key(s: LiveStore) -> StringName:
 		return StringName()
 	keys.sort()
 	return keys[market_rng.randi_range(0, keys.size() - 1)]
+
+
+## 잔해 제거 (§23.3): 잔해 타일에 인접한 플레이어의 J 연타
+@rpc("any_peer", "call_local", "reliable")
+func request_clear_debris(player_tile: Vector2i) -> void:
+	if not is_server():
+		return
+	var city_id: String = city_of_peer(_sender())
+	var s: LiveStore = live.get(city_id)
+	if s == null or String(s.event.get("type", "")) != "debris":
+		return
+	var tile: Vector2i = s.event.get("tile", Vector2i.MAX)
+	if not _in_reach(player_tile, tile):
+		return
+	_server_event_hit(city_id, s)
 
 
 ## 서버 전용: 영업 시작 시 매장별 오늘의 이벤트 판정 (사전 경고 없음 슬라이스)
@@ -861,6 +910,11 @@ func _roll_daily_events() -> void:
 				+ event_leak_chance + event_slippery_chance \
 				+ event_vent_chance + event_breakdown_chance:
 			type = "breakdown"
+		elif roll < event_fire_chance + event_blackout_chance \
+				+ event_leak_chance + event_slippery_chance \
+				+ event_vent_chance + event_breakdown_chance \
+				+ event_debris_chance:
+			type = "debris"
 		if type != "":
 			_scheduled_events[city_id] = {"type": type,
 				"at": market_rng.randf_range(0.2, 0.7) * GameClock.service_length}
@@ -1223,6 +1277,12 @@ func effective_ingredient_cost(city_id: String = "") -> int:
 	# 공급업체 계약 (§21.2): 기본 단가 인하
 	var unit: int = SUPPLIER_UNIT_COST \
 		if FranchiseState.research_done(SUPPLIER_RESEARCH) else ingredient_unit_cost
+	# 물류센터 (§21.2): 자국(한국) 단가 인하 — 글로벌 물류망은 전 도시로 확대
+	var city: CityDef = Defs.get_def(StringName(city_id)) as CityDef
+	if FranchiseState.research_done(LOGI_GLOBAL_RESEARCH) \
+			or (FranchiseState.research_done(LOGI_CENTER_RESEARCH)
+				and city != null and city.country_id == &"country.korea"):
+		unit -= LOGI_DISCOUNT
 	return int(unit * CityEconomy.event_cost_factor(
 		FranchiseState.city_events, city_id))
 
@@ -1237,7 +1297,12 @@ func current_rent(city_id: String) -> int:
 ## 준비 단계 재료 주문 — 즉시 구매, 마감 시 잔여분 폐기 (§21.1)
 @rpc("any_peer", "call_local", "reliable")
 func request_buy_stock(qty: int) -> void:
-	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
+	if not is_server():
+		return
+	# 긴급 구매 (§21.2): 연구 완료 시 영업 중에도 할증 단가로 구매 가능
+	var emergency: bool = GameClock.phase == GameClock.Phase.SERVICE \
+		and FranchiseState.research_done(EMERGENCY_RESEARCH)
+	if GameClock.phase != GameClock.Phase.PREP and not emergency:
 		return
 	var peer: int = _sender()
 	var city_id: String = city_of_peer(peer)
@@ -1245,7 +1310,10 @@ func request_buy_stock(qty: int) -> void:
 	if s == null:
 		return
 	qty = clampi(qty, 1, 99)
-	var cost: int = qty * effective_ingredient_cost(city_id)
+	var unit: int = effective_ingredient_cost(city_id)
+	if emergency:
+		unit *= EMERGENCY_COST_MULT
+	var cost: int = qty * unit
 	if FranchiseState.money < cost:
 		notify_fail.rpc_id(peer, "not_enough_money")
 		return
@@ -1476,10 +1544,21 @@ const AD_RESEARCH: Dictionary = {
 const COUNTRY_RESEARCH: Dictionary = {
 	"city.japan.": "research.japan",
 }
+## 장비 연구 (§20): 냉장고 증설 — 라이브 매장 슬롯 확대
+const FRIDGE_RESEARCH: String = "research.fridge_plus"
+const FRIDGE_BONUS_SLOTS: int = 2
 ## 물류·조리 기술 연구 (§21.2/§20): 효과 상수
 const SUPPLIER_RESEARCH: String = "research.supplier"
 const SUPPLIER_UNIT_COST: int = 400
 const AUTO_ORDER_RESEARCH: String = "research.auto_order"
+## 물류 확장 (§21.2): 물류센터=자국 단가 인하, 글로벌 물류망=전 도시 확대,
+## 긴급 구매=영업 중 재고 구매(할증), 운송비 최적화=재배치 비용 반값
+const LOGI_CENTER_RESEARCH: String = "research.logistics_center"
+const LOGI_GLOBAL_RESEARCH: String = "research.logistics_global"
+const LOGI_DISCOUNT: int = 50
+const EMERGENCY_RESEARCH: String = "research.emergency_buy"
+const EMERGENCY_COST_MULT: int = 2
+const TRANSPORT_RESEARCH: String = "research.transport_opt"
 const AUTO_ORDER_QTY: int = 20
 const KNIFE_RESEARCH: String = "research.knife_skill"
 
@@ -1514,7 +1593,23 @@ func _apply_research(research_id: String, new_money: int, new_points: int) -> vo
 	FranchiseState.research[research_id] = true
 	FranchiseState.research_points = new_points
 	FranchiseState.set_money(new_money)
+	if research_id == FRIDGE_RESEARCH:
+		_ensure_fridge_bonus()
 	research_changed.emit()
+
+
+## 냉장고 증설 (§20 장비): 연구 완료 시 모든 라이브 매장 +2칸.
+## 세이브 로드 시에도 호출해 구버전 용량을 끌어올린다.
+func _ensure_fridge_bonus() -> void:
+	if not FranchiseState.research_done(FRIDGE_RESEARCH):
+		return
+	for city_id: String in live.keys():
+		var s: LiveStore = live[city_id]
+		var def: RefrigeratorDef = Defs.get_def(s.fridge.def_id) as RefrigeratorDef
+		var want: int = def.slot_count + FRIDGE_BONUS_SLOTS
+		if s.fridge.slots.size() < want:
+			s.fridge.slots.resize(want)
+	fridge_changed.emit()
 
 
 ## 경영 상태 일괄 반영 (재고/자금/가격/대출 — 존재하는 키만 적용)
@@ -2045,7 +2140,7 @@ func _tick_fixer(city_id: String, s: LiveStore, emp: EmployeeState) -> void:
 
 func _fixer_handles(role: EmployeeDef.Role, etype: String) -> bool:
 	if role == EmployeeDef.Role.CLEAN:
-		return etype == "leak" or etype == "slippery"
+		return etype == "leak" or etype == "slippery" or etype == "debris"
 	return etype == "fire" or etype == "blackout" \
 		or etype == "vent" or etype == "breakdown"
 
@@ -2053,6 +2148,8 @@ func _fixer_handles(role: EmployeeDef.Role, etype: String) -> bool:
 func _event_tile(s: LiveStore, etype: String) -> Vector2i:
 	if etype == "blackout":
 		return _work_tile_of(s, _fridge_key(s))
+	if etype == "debris":
+		return s.event.get("tile", Vector2i.MAX)
 	return _work_tile_of(s, StringName(String(s.event.get("station", ""))))
 
 
@@ -2100,9 +2197,12 @@ const TRANSFER_COST_ABROAD: int = 8000
 func transfer_cost(from_city: String, to_city: String) -> int:
 	var a: CityDef = Defs.get_def(StringName(from_city)) as CityDef
 	var b: CityDef = Defs.get_def(StringName(to_city)) as CityDef
-	if a.country_id == b.country_id:
-		return TRANSFER_COST_DOMESTIC
-	return TRANSFER_COST_ABROAD
+	var cost: int = TRANSFER_COST_DOMESTIC \
+		if a.country_id == b.country_id else TRANSFER_COST_ABROAD
+	# 운송비 최적화 (§21.2): 재배치 비용 반값
+	if FranchiseState.research_done(TRANSPORT_RESEARCH):
+		cost /= 2
+	return cost
 
 
 ## 직원 재배치 (§10.5): 준비 단계 전용, 개설 매장으로 즉시·영구 이적.
@@ -2892,6 +2992,7 @@ func apply_snapshot_local(snap: Dictionary) -> void:
 	next_eid = int(snap.get("next_eid", 1))
 	GameClock.from_dict(snap.get("clock", {}))
 	FranchiseState.from_dict(snap.get("franchise", {}))
+	_ensure_fridge_bonus()  # 구버전 세이브: 냉장고 증설 연구분 반영 (§20)
 	for eid: int in _local().employees.keys():
 		employee_changed.emit(eid)
 	fridge_changed.emit()

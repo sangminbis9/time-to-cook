@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EconEventDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/econ_event_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"event.storm"
+display_name_ko = "폭풍"
+demand_factor = 0.6
+ingredient_cost_factor = 1.2
+duration_days = 1
+weight = 0.6

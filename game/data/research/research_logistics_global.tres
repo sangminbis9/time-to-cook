@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.logistics_global"
+display_name_ko = "글로벌 물류망"
+category = 4
+desc_ko = "재료 단가 인하가 해외 매장까지 확대된다."
+cost_money = 25000
+cost_points = 3
+prereq = Array[StringName]([&"research.logistics_center"])

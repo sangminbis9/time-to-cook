@@ -62,10 +62,39 @@ func test_gate_targets_exist() -> void:
 		assert_true(Defs.has_def(StringName(rid)), "%s 정의 존재" % rid)
 
 
-func test_logistics_and_cooking_have_nodes() -> void:
-	# 물류·조리 기술 카테고리 채움 (P32 — 장비 카테고리는 아직 빈 슬라이스)
+func test_every_category_has_nodes() -> void:
+	# §20 카테고리 6종 전부 노드 보유 (P32 물류·조리, P36 장비로 완성)
 	var seen: Dictionary = {}
 	for def: ResearchDef in _all_research():
 		seen[def.category] = true
-	assert_true(seen.has(ResearchDef.Category.LOGISTICS), "물류 노드 존재")
-	assert_true(seen.has(ResearchDef.Category.COOKING), "조리 기술 노드 존재")
+	for category: ResearchDef.Category in ResearchDef.Category.values():
+		assert_true(seen.has(category), "카테고리 %d 노드 존재" % category)
+
+
+func test_fridge_plus_expands_new_store() -> void:
+	# 냉장고 증설 (§20 장비): 연구 후 신규 매장은 +2칸으로 시작
+	var base: int = LiveStore.create(GameServer.layout).fridge.slots.size()
+	FranchiseState.research[GameServer.FRIDGE_RESEARCH] = true
+	var expanded: int = LiveStore.create(GameServer.layout).fridge.slots.size()
+	FranchiseState.research.erase(GameServer.FRIDGE_RESEARCH)
+	assert_eq(expanded, base + GameServer.FRIDGE_BONUS_SLOTS, "슬롯 +2")
+
+
+func test_logistics_cost_effects() -> void:
+	# 물류 확장 (§21.2): 물류센터=한국만 -50, 글로벌=일본까지, 운송비=반값
+	var kr: String = "city.korea.incheon"
+	var jp: String = "city.japan.osaka"
+	FranchiseState.research[GameServer.SUPPLIER_RESEARCH] = true
+	assert_eq(GameServer.effective_ingredient_cost(kr), 400, "공급업체 단가")
+	FranchiseState.research[GameServer.LOGI_CENTER_RESEARCH] = true
+	assert_eq(GameServer.effective_ingredient_cost(kr), 350, "물류센터: 한국 -50")
+	assert_eq(GameServer.effective_ingredient_cost(jp), 400, "물류센터: 일본 미적용")
+	FranchiseState.research[GameServer.LOGI_GLOBAL_RESEARCH] = true
+	assert_eq(GameServer.effective_ingredient_cost(jp), 350, "글로벌: 일본도 -50")
+	assert_eq(GameServer.transfer_cost(kr, jp), 8000, "해외 재배치 기본")
+	FranchiseState.research[GameServer.TRANSPORT_RESEARCH] = true
+	assert_eq(GameServer.transfer_cost(kr, jp), 4000, "운송비 최적화: 반값")
+	assert_eq(GameServer.transfer_cost(kr, "city.korea.seoul"), 1500, "국내도 반값")
+	for rid: String in [GameServer.SUPPLIER_RESEARCH, GameServer.LOGI_CENTER_RESEARCH,
+			GameServer.LOGI_GLOBAL_RESEARCH, GameServer.TRANSPORT_RESEARCH]:
+		FranchiseState.research.erase(rid)

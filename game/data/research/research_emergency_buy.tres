@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.emergency_buy"
+display_name_ko = "긴급 구매"
+category = 4
+desc_ko = "영업 중에도 재료를 2배 단가로 즉시 구매할 수 있다."
+cost_money = 10000
+cost_points = 1
+prereq = Array[StringName]([&"research.supplier"])

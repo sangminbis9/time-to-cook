@@ -144,8 +144,25 @@ func _process_movement(delta: float) -> void:
 
 func _try_move(motion: Vector2) -> void:
 	var target: Vector2 = position + motion
-	if _can_stand(target):
+	if _can_stand(target) and not _enters_debris(target):
 		position = target
+
+
+## 통로 막힘 (§23.1): 잔해 타일 진입만 차단 — 이미 겹쳐 있으면 빠져나갈 수 있다
+func _enters_debris(target: Vector2) -> bool:
+	var event: Dictionary = GameServer.current_store_event()
+	if String(event.get("type", "")) != "debris":
+		return false
+	var debris: Vector2i = event.get("tile", Vector2i.MAX)
+	return _overlaps_tile(target, debris) and not _overlaps_tile(position, debris)
+
+
+func _overlaps_tile(pos: Vector2, tile: Vector2i) -> bool:
+	for corner: Vector2 in FOOT_CORNERS:
+		var world: Vector2 = pos + corner
+		if Vector2i(floori(world.x / TILE), floori(world.y / TILE)) == tile:
+			return true
+	return false
 
 
 func _can_stand(pos: Vector2) -> bool:
@@ -173,6 +190,15 @@ func _process_targeting() -> void:
 	var target_type: InteractionSelector.TargetType = target["type"]
 	if target_type == InteractionSelector.TargetType.NONE:
 		_highlight.visible = false
+		# 잔해 근처는 대상이 없어도 제거 안내 (§23.3)
+		var event: Dictionary = GameServer.current_store_event()
+		if String(event.get("type", "")) == "debris":
+			var debris: Vector2i = event.get("tile", Vector2i.MAX)
+			var d: Vector2i = (debris - tile_pos()).abs()
+			if maxi(d.x, d.y) <= 2:
+				_prompt.visible = true
+				_prompt.text = "J: 잔해 제거"
+				return
 		_prompt.visible = false
 		return
 	var tile: Vector2i = target["tile"]
@@ -191,6 +217,11 @@ func _prompt_for(target: Dictionary) -> String:
 	# 매장 이벤트 대응 안내 (§23.3)
 	var event: Dictionary = GameServer.current_store_event()
 	var etype: String = String(event.get("type", ""))
+	if etype == "debris":
+		var debris: Vector2i = event.get("tile", Vector2i.MAX)
+		var d: Vector2i = (debris - tile_pos()).abs()
+		if maxi(d.x, d.y) <= 2:
+			return "J: 잔해 제거"
 	if String(target["station_key"]) == String(event.get("station", "")):
 		if etype == "fire":
 			return "J: 진압!"
@@ -216,6 +247,14 @@ func _prompt_for(target: Dictionary) -> String:
 
 
 func _on_interact() -> void:
+	# 잔해 제거 (§23.3): 잔해가 손닿는 곳이면 J는 제거 연타로 우선 사용
+	var event: Dictionary = GameServer.current_store_event()
+	if String(event.get("type", "")) == "debris":
+		var debris: Vector2i = event.get("tile", Vector2i.MAX)
+		var d: Vector2i = (debris - tile_pos()).abs()
+		if maxi(d.x, d.y) <= 2:  # 서버 MAX_REACH_TILES와 동일
+			GameServer.request_clear_debris.rpc_id(1, tile_pos())
+			return
 	var target: Dictionary = InteractionSelector.pick(position, facing)
 	var target_type: InteractionSelector.TargetType = target["type"]
 	match target_type:

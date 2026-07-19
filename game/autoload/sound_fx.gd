@@ -15,9 +15,13 @@ const SOUNDS: Dictionary = {
 	&"skill": "res://assets/audio/skill.wav",
 }
 const POOL_SIZE: int = 8
+const BGM_PATH: String = "res://assets/audio/bgm.wav"
+## 볼륨 설정 저장 위치 (§35 효과음·음악 분리)
+const SETTINGS_PATH: String = "user://settings.cfg"
 
 var _players: Array[AudioStreamPlayer] = []
 var _streams: Dictionary = {}
+var _bgm_player: AudioStreamPlayer
 var _last_money: int = 0
 var _last_event_type: String = ""
 ## 튀김기 key → item_iid (투입 감지용)
@@ -25,12 +29,30 @@ var _fryer_items: Dictionary = {}
 
 
 func _ready() -> void:
+	# 효과음·음악 버스 분리 (§35): Master 아래 SFX/Music
+	for bus_name: String in ["SFX", "Music"]:
+		if AudioServer.get_bus_index(bus_name) == -1:
+			AudioServer.add_bus()
+			AudioServer.set_bus_name(AudioServer.bus_count - 1, bus_name)
 	for i in range(POOL_SIZE):
 		var player: AudioStreamPlayer = AudioStreamPlayer.new()
+		player.bus = &"SFX"
 		add_child(player)
 		_players.append(player)
 	for sfx_name: StringName in SOUNDS.keys():
 		_streams[sfx_name] = load(String(SOUNDS[sfx_name]))
+	# 배경음 (§34): 무한 루프, 항상 재생 — 볼륨은 Music 버스로 조절
+	var bgm: AudioStreamWAV = load(BGM_PATH) as AudioStreamWAV
+	if bgm != null:
+		bgm.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		bgm.loop_begin = 0
+		bgm.loop_end = bgm.data.size() / 2  # 16비트 모노: 2바이트 = 1프레임
+		_bgm_player = AudioStreamPlayer.new()
+		_bgm_player.bus = &"Music"
+		_bgm_player.stream = bgm
+		add_child(_bgm_player)
+		_bgm_player.play()
+	_load_volumes()
 	GameServer.fail_notified.connect(func(_msg: String) -> void: play(&"fail"))
 	GameServer.order_completed.connect(
 		func(_oid: int, _revenue: int) -> void: play(&"submit"))
@@ -87,3 +109,34 @@ func _on_money_changed(money: int) -> void:
 	if money < _last_money and GameClock.phase == GameClock.Phase.PREP:
 		play(&"coin")
 	_last_money = money
+
+
+# ── 볼륨 옵션 (§35): 효과음·음악 분리, user://settings.cfg 저장 ──────
+
+func get_volume(bus_name: String) -> float:
+	return db_to_linear(AudioServer.get_bus_volume_db(
+		AudioServer.get_bus_index(bus_name)))
+
+
+func set_volume(bus_name: String, linear: float) -> void:
+	linear = clampf(linear, 0.0, 1.0)
+	AudioServer.set_bus_volume_db(
+		AudioServer.get_bus_index(bus_name), linear_to_db(maxf(linear, 0.001)))
+	AudioServer.set_bus_mute(
+		AudioServer.get_bus_index(bus_name), linear <= 0.0)
+	var config: ConfigFile = ConfigFile.new()
+	config.load(SETTINGS_PATH)
+	config.set_value("audio", bus_name, linear)
+	config.save(SETTINGS_PATH)
+
+
+func _load_volumes() -> void:
+	var config: ConfigFile = ConfigFile.new()
+	if config.load(SETTINGS_PATH) != OK:
+		return
+	for bus_name: String in ["SFX", "Music"]:
+		var linear: float = float(config.get_value("audio", bus_name, 1.0))
+		AudioServer.set_bus_volume_db(
+			AudioServer.get_bus_index(bus_name), linear_to_db(maxf(linear, 0.001)))
+		AudioServer.set_bus_mute(
+			AudioServer.get_bus_index(bus_name), linear <= 0.0)

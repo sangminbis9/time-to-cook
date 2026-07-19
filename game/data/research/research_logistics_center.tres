@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.logistics_center"
+display_name_ko = "국가별 물류센터"
+category = 4
+desc_ko = "한국 매장의 재료 단가가 50원 내려간다."
+cost_money = 15000
+cost_points = 2
+prereq = Array[StringName]([&"research.supplier"])

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.fryer_timer"
+display_name_ko = "튀김기 타이머"
+category = 2
+desc_ko = "모든 튀김기의 알맞게 튀겨진 상태가 3초 더 유지되고 타는 시점도 늦어진다."
+cost_money = 14000
+cost_points = 2

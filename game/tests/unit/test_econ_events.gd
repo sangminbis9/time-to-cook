@@ -15,6 +15,7 @@ func test_event_defs_loaded() -> void:
 	for id: StringName in [
 		&"event.boom", &"event.recession",
 		&"event.tourism_surge", &"event.supply_shock",
+		&"event.storm", &"event.snow", &"event.heatwave", &"event.earthquake",
 	]:
 		assert_true(Defs.has_def(id), "누락 이벤트: %s" % id)
 

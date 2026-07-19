@@ -37,3 +37,31 @@ func test_country_split() -> void:
 		assert_eq((Defs.get_def(id) as CityDef).country_id, &"country.korea")
 	for id: StringName in JAPAN:
 		assert_eq((Defs.get_def(id) as CityDef).country_id, &"country.japan")
+
+func test_preferred_recipes_valid() -> void:
+	# 지역 선호 메뉴 (§19.1): 지정된 도시의 선호 레시피는 실존해야 한다
+	var found: int = 0
+	for id: StringName in KOREA + JAPAN:
+		var city: CityDef = Defs.get_def(id) as CityDef
+		if city.preferred_recipe == &"":
+			continue
+		found += 1
+		assert_true(Defs.get_def(city.preferred_recipe) is RecipeDef,
+			"%s 선호 레시피 실존" % id)
+	assert_gt(found, 0, "선호 메뉴 도시 존재")
+
+
+func test_order_candidates_weighting() -> void:
+	# 선호 메뉴가 판매 중이면 후보에 2번 — 미판매면 가중 없음
+	var s: LiveStore = LiveStore.new()
+	var seoul: CityDef = Defs.get_def(&"city.korea.seoul") as CityDef
+	assert_eq(GameServer.order_candidates(s, seoul).size(), 1,
+		"양념대 없음: 후라이드 1종만 (가중 없음)")
+	s.placements["t1"] = {"def_id": &"station.spicy_table", "tile": Vector2i(2, 2)}
+	var pool: Array[RecipeDef] = GameServer.order_candidates(s, seoul)
+	assert_eq(pool.size(), 3, "매운맛 판매 중: 선호 중복 포함 3장")
+	var spicy_count: int = 0
+	for recipe: RecipeDef in pool:
+		if recipe.id == &"recipe.spicy_dakgangjeong":
+			spicy_count += 1
+	assert_eq(spicy_count, 2, "선호 레시피 2배 가중")

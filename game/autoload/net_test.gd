@@ -80,6 +80,7 @@ func _run() -> void:
 		GameServer.event_slippery_chance = 0.0
 		GameServer.event_vent_chance = 0.0
 		GameServer.event_breakdown_chance = 0.0
+		GameServer.event_debris_chance = 0.0
 		GameServer.event_burnt_fire_chance = 0.0
 
 	match scenario:
@@ -111,6 +112,8 @@ func _run() -> void:
 			await _scenario_char_info()
 		"research":
 			await _scenario_research()
+		"logistics":
+			await _scenario_logistics()
 		"insurance":
 			await _scenario_insurance()
 		"employee_support":
@@ -808,6 +811,23 @@ func _scenario_store_events() -> void:
 	_check(GameServer.current_store_event().is_empty(), "장비 3회 수리 완료")
 	await _sleep(0.3)
 	_check(item2.cook_elapsed > frozen, "수리 후 조리 재개")
+
+	# ── 통로 막힘: 지정 타일에 잔해 → 멀면 무시, 인접 J 연타 3회로 제거 (§23.1)
+	var debris_tile: Vector2i = Vector2i(6, 4)
+	GameServer.server_start_store_event(CITY, "debris", StringName(), debris_tile)
+	await _sleep(0.2)
+	var debris_event: Dictionary = GameServer.current_store_event()
+	_check(String(debris_event.get("type", "")) == "debris"
+		and Vector2i(debris_event.get("tile", Vector2i.MAX)) == debris_tile,
+		"통로 막힘 시작 — 지정 타일")
+	GameServer.request_clear_debris.rpc_id(1, Vector2i(1, 6))  # 4칸 밖 — 거부
+	await _sleep(0.2)
+	_check(int(GameServer.current_store_event().get("hits", 0)) == 0,
+		"먼 거리 제거 시도 거부")
+	for i in range(3):
+		GameServer.request_clear_debris.rpc_id(1, debris_tile + Vector2i(1, 0))
+		await _sleep(0.1)
+	_check(GameServer.current_store_event().is_empty(), "잔해 3회 제거 완료")
 	_finish(_all_passed(), "")
 
 
@@ -1042,6 +1062,41 @@ func _scenario_research() -> void:
 		return GameClock.phase == GameClock.Phase.PREP)
 	_check(GameServer.ingredient_stock == GameServer.AUTO_ORDER_QTY,
 		"다음 날 재고 자동 보충 (실제 %d)" % GameServer.ingredient_stock)
+	_finish(_all_passed(), "")
+
+
+## 물류·장비 확장 (§21.2/§20, 솔로): 냉장고 증설 즉시 반영,
+## 긴급 구매는 영업 중 2배 단가로 재고 보충. 연구 전 영업 중 구매는 거부.
+func _scenario_logistics() -> void:
+	FranchiseState.set_money(100000)
+	FranchiseState.research_points = 5
+	GameClock.service_length = 20.0
+	GameServer.order_interval_min = 9999.0
+	GameServer.order_interval_max = 9999.0
+	var base_slots: int = GameServer.fridge.slots.size()
+	GameServer.request_buy_research.rpc_id(1, "research.fridge_plus")
+	await _sleep(0.2)
+	_check(GameServer.fridge.slots.size() == base_slots + 2,
+		"냉장고 증설 즉시 +2칸 (실제 %d)" % GameServer.fridge.slots.size())
+	FranchiseState.research[GameServer.SUPPLIER_RESEARCH] = true
+	var stock0: int = GameServer.ingredient_stock
+	GameServer.request_ready_toggle.rpc_id(1)
+	await _wait_until(func() -> bool:
+		return GameClock.phase == GameClock.Phase.SERVICE)
+	# 연구 전: 영업 중 구매 거부
+	var money0: int = FranchiseState.money
+	GameServer.request_buy_stock.rpc_id(1, 10)
+	await _sleep(0.2)
+	_check(FranchiseState.money == money0 and GameServer.ingredient_stock == stock0,
+		"긴급 구매 미연구 — 영업 중 구매 거부")
+	# 연구 후: 2배 단가(400×2)로 즉시 보충
+	FranchiseState.research[GameServer.EMERGENCY_RESEARCH] = true
+	GameServer.request_buy_stock.rpc_id(1, 10)
+	await _sleep(0.2)
+	_check(FranchiseState.money == money0 - 8000,
+		"긴급 구매 10개 = 8000원 차감 (실제 %d)" % (money0 - FranchiseState.money))
+	_check(GameServer.ingredient_stock == stock0 + 10,
+		"재고 +10 (실제 %d)" % GameServer.ingredient_stock)
 	_finish(_all_passed(), "")
 
 

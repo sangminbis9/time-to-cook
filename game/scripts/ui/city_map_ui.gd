@@ -108,6 +108,10 @@ func _make_row(city: CityDef) -> HBoxContainer:
 			city.display_name_ko, city.entry_cost, rent_today]
 	if partner_here:
 		info.text += "  [동료]"
+	# 지역 선호 메뉴 (§19.1)는 공개 정보 — 판매 시 주문 확률 2배
+	if city.preferred_recipe != &"" and Defs.has_def(city.preferred_recipe):
+		var pref: RecipeDef = Defs.get_def(city.preferred_recipe) as RecipeDef
+		info.text += "  ♨%s 선호" % pref.display_name_ko
 	# 경제 이벤트는 공개 정보 (§7.1) — 시장 조사 없이 표시
 	var event: Dictionary = FranchiseState.city_events.get(city_id, {})
 	if not event.is_empty():

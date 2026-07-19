@@ -25,6 +25,7 @@ var next_order_in: float = 0.0
 ## 화재: {"type": "fire", "station": String, "hits": int, ["destroy_iid": int]}
 ## 정전: {"type": "blackout"}
 ## 누수/미끄러움: {"type": "leak"|"slippery", "station": String, "hits": int}
+## 통로 막힘: {"type": "debris", "tile": Vector2i, "hits": int}
 var event: Dictionary = {}
 ## 보유한 예방 설비 (§23.4): id → true. 매장 귀속, 되팔기 없음.
 ## 보험 가입도 "insurance" 키로 여기에 저장된다 (직렬화 공유).
@@ -40,7 +41,11 @@ static func create(layout: StoreLayout) -> LiveStore:
 	store.grid.walkable = layout.walkable.duplicate()
 	store._install_placements(layout.stations.duplicate(true))
 	var fridge_def: RefrigeratorDef = Defs.get_def(&"fridge.small") as RefrigeratorDef
-	store.fridge = FridgeState.create(fridge_def.id, fridge_def.slot_count)
+	# 냉장고 증설 연구 (§20 장비): 신규 매장도 확장 용량으로 시작
+	var slot_count: int = fridge_def.slot_count
+	if FranchiseState.research_done("research.fridge_plus"):
+		slot_count += 2
+	store.fridge = FridgeState.create(fridge_def.id, slot_count)
 	return store
 
 

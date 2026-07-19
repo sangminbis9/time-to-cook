@@ -16,3 +16,5 @@ extends Resource
 @export var competition: float = 1.0
 ## 추천 재조사 주기 (일, §7.5)
 @export var recheck_days: int = 7
+## 지역 선호 메뉴 (§19.1 지역별 변형): 판매 중이면 주문 확률 2배. 빈 값 = 없음.
+@export var preferred_recipe: StringName = &""

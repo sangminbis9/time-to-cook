@@ -10,6 +10,7 @@ const PREVENTION_LABELS: Dictionary = {
 	"antislip": "미끄럼 방지 바닥",
 	"vent": "환기 시설 (환기 고장 예방)",
 	"maintenance": "유지보수 계약 (장비 고장 예방)",
+	"exit": "비상구 (통로 막힘 예방)",
 }
 
 var _rows: VBoxContainer

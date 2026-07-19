@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ResearchDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/defs/research_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"research.fridge_plus"
+display_name_ko = "냉장고 증설"
+category = 2
+desc_ko = "모든 매장의 냉장고 보관 칸이 2칸 늘어난다 (신규 매장 포함)."
+cost_money = 12000
+cost_points = 1

@@ -60,3 +60,16 @@ func test_reinsert_resume_reaches_normal() -> void:
 	assert_eq(CookStateMachine.resolve_takeout(item, fryer), &"item.breaded_chicken")
 	item.cook_elapsed += 5.0
 	assert_eq(CookStateMachine.resolve_takeout(item, fryer), &"item.dakgangjeong")
+
+
+func test_fryer_timer_research_extends_normal() -> void:
+	# 튀김기 타이머 연구 (§20 장비): NORMAL 창·탄 시점이 +3초 밀린다
+	var at_edge: float = fryer.cook_seconds + fryer.normal_window_seconds + 1.0
+	assert_eq(CookStateMachine.state_for(at_edge, fryer),
+		CookStateMachine.State.OVERCOOKED, "연구 전: 과조리")
+	FranchiseState.research[CookStateMachine.FRYER_TIMER_RESEARCH] = true
+	assert_eq(CookStateMachine.state_for(at_edge, fryer),
+		CookStateMachine.State.NORMAL, "연구 후: 아직 정상")
+	assert_eq(CookStateMachine.state_for(fryer.burn_after_seconds, fryer),
+		CookStateMachine.State.OVERCOOKED, "탄 시점도 함께 지연")
+	FranchiseState.research.erase(CookStateMachine.FRYER_TIMER_RESEARCH)

@@ -13,3 +13,4 @@ demand = 2.0
 price_sensitivity = 0.8
 competition = 1.2
 recheck_days = 5
+preferred_recipe = &"recipe.sweet_dakgangjeong"

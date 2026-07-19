@@ -39,6 +39,7 @@ var _slot_rects: Array[TextureRect] = []
 var _item_icons: Array[TextureRect] = []
 var _toast: Label
 var _status: Label
+var _emergency_btn: Button
 var _orders_box: VBoxContainer
 var _phase_hint: Label
 var _settlement: PanelContainer
@@ -155,6 +156,14 @@ func _build_status() -> void:
 	_status.add_theme_color_override("font_outline_color", Color(0.97, 0.94, 0.85))
 	_status.add_theme_constant_override("outline_size", 2)
 	add_child(_status)
+	# 긴급 구매 (§21.2): 연구 완료 시 영업 중 재료 즉시 구매 (2배 단가)
+	_emergency_btn = Button.new()
+	_emergency_btn.add_theme_font_size_override("font_size", 11)
+	_emergency_btn.position = Vector2(6, 22)
+	_emergency_btn.visible = false
+	_emergency_btn.pressed.connect(func() -> void:
+		GameServer.request_buy_stock.rpc_id(1, 10))
+	add_child(_emergency_btn)
 	GameClock.phase_changed.connect(func(_p: GameClock.Phase) -> void: _refresh_status())
 	GameClock.day_advanced.connect(func(_d: int) -> void: _refresh_status())
 	FranchiseState.money_changed.connect(func(_m: int) -> void: _refresh_status())
@@ -188,6 +197,13 @@ func _refresh_status() -> void:
 		else:
 			text += "  L: %s" % character.skill_name_ko
 	_status.text = text
+	var emergency: bool = GameClock.phase == GameClock.Phase.SERVICE \
+		and FranchiseState.research_done(GameServer.EMERGENCY_RESEARCH)
+	_emergency_btn.visible = emergency
+	if emergency:
+		_emergency_btn.text = "긴급 구매 10개 (%d원)" % (
+			10 * GameServer.effective_ingredient_cost()
+			* GameServer.EMERGENCY_COST_MULT)
 
 
 func _build_orders_panel() -> void:
@@ -307,6 +323,10 @@ func _refresh_event_banner() -> void:
 			_event_banner.text = "⚠ 장비 고장! 멈춘 튀김기에 J 연타 (%d/%d)" % [
 				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
 			_event_banner.visible = true
+		"debris":
+			_event_banner.text = "⚠ 통로 막힘! 잔해 옆에서 J 연타 (%d/%d)" % [
+				int(event.get("hits", 0)), GameServer.EXTINGUISH_HITS]
+			_event_banner.visible = true
 		_:
 			_event_banner.visible = false
 
@@ -381,6 +401,7 @@ func _build_prep_menu() -> void:
 	_menu_button("캐릭터", func() -> void: _open_popup(CharacterUi.new()))
 	_menu_button("연구", func() -> void: _open_popup(ResearchUi.new()))
 	_map_button = _menu_button("지도", func() -> void: _open_popup(CityMapUi.new()))
+	_menu_button("설정", func() -> void: _open_popup(SettingsUi.new()))
 	GameServer.market_info_changed.connect(_refresh_prep_menu)
 	GameServer.ready_state_changed.connect(_refresh_prep_menu)
 	_refresh_prep_menu()
