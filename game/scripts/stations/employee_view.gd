@@ -22,7 +22,7 @@ func setup(p_eid: int) -> void:
 	shadow.scale = Vector2(1.2, 0.9)
 	add_child(shadow)
 	_sprite = Sprite2D.new()
-	_sprite.texture = load("res://assets/sprites/player_mint.png")
+	_sprite.texture = load("res://assets/sprites/player_employee.png")
 	_sprite.hframes = 8
 	_sprite.modulate = _role_tint()
 	_sprite.position = Vector2(0, -8)  # 확대해도 발 위치 유지

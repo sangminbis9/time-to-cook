@@ -12,9 +12,9 @@ static func build(popup: Control, text: String) -> HBoxContainer:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
 	var close: Button = Button.new()
-	close.text = "×"
-	close.add_theme_font_size_override("font_size", 13)
-	close.custom_minimum_size = Vector2(20, 20)
+	close.tooltip_text = "닫기 (Esc)"
+	close.custom_minimum_size = Vector2(24, 22)
+	PixelUi.decorate_button(close, &"close")
 	close.pressed.connect(popup.queue_free)
 	row.add_child(close)
 	return row

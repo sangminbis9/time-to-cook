@@ -1,7 +1,30 @@
-# Time to Cook — 추가 생성 필요 에셋 (ChatGPT 프롬프트 포함)
+# Time to Cook — 아트 생성·반영 기록 (ChatGPT 프롬프트 포함)
 
-1차 납품분 25종 중 24종은 `tools/import_art.py` 파이프라인으로 게임에 반영 완료.
-아래는 **미납품·사용 불가·품질 미달**로 재생성이 필요한 것들이다.
+1차 납품분과 2026-07-24 보완분을 `tools/import_art.py` 파이프라인으로 게임에 반영했다.
+아래 프롬프트는 재생성·변형 제작 때 동일한 방향을 유지하기 위한 기록이다.
+
+## 2026-07-24 보완 완료
+
+- 필수 미납/불량: `station_submit.png`, `player_employee.png`
+- 캐릭터: `player_basil.png`와 선택 즉시 외형 전환
+- 메뉴 구분: `item_{sweet,spicy,soy,garlic}_dakgangjeong.png`
+- 설비 구분: `station_{sauce,spicy,soy,garlic}_table.png`
+- UI: `title_background.png`, `ui_button.png`, 준비 메뉴 아이콘 7종, 닫기 아이콘
+- 원본: `art_src/`, 게임용 네이티브 해상도: `game/assets/sprites/`
+- 검증: Godot 4.7 import, GUT 132/132, Windows OpenGL 타이틀·매장 렌더 확인
+
+## 2026-07-24 캐릭터 생성 화면 추가
+
+- 선택 초상화: `character_portrait_{mint,apricot,basil}.png`
+- 각 캐릭터의 기존 8방향 플레이 스프라이트를 정체성 참조 이미지로 사용
+- 내장 이미지 생성 도구로 한 장씩 생성한 뒤 단색 `#ff00ff` 크로마키를 제거
+- 투명 고해상도 원본은 `art_src/`, 게임용 80×80 결과는 `game/assets/sprites/`
+- 공통 프롬프트 기준: 따뜻한 16-bit 생활 시뮬레이션 픽셀 아트, 상반신 중앙 구도,
+  역할을 나타내는 소도구, 강한 실루엣, 텍스트·프레임·워터마크 없음
+- 미트: 민트 앞치마·조리용 칼·차분한 전처리 장인
+- 살구: 주황 앞치마·어깨끈·활달한 운반 전문가
+- 바질: 초록 머리·주문 패드·다정한 서비스 전문가
+- 검증: 투명 모서리, 80×80 네이티브 변환, Windows OpenGL 캐릭터 생성 화면 렌더
 
 ## 생성 시 주의 (1차 납품에서 배운 것)
 
@@ -18,7 +41,7 @@
 
 ---
 
-## 1. `station_submit.png` — 제출대 (필수, 1차 미납품)
+## 1. `station_submit.png` — 제출대 (완료)
 
 게임 내 유일한 민트색 상판 설비. 다른 나무 작업대와 한눈에 구분돼야 한다.
 
@@ -30,7 +53,7 @@
 > background, no text, no labels, no floor shadow gradient — just a small hard pixel
 > shadow at the base. Square image.
 
-## 2. `player_employee.png` — 직원 캐릭터 시트 (필수, 1차 사용 불가)
+## 2. `player_employee.png` — 직원 캐릭터 시트 (완료)
 
 1차 납품분은 두 시트를 한 장에 비교 배치 + 파일명 텍스트가 박혀 있어 탈락.
 **한 장에 이 캐릭터 하나의 8프레임만** 담아야 한다.

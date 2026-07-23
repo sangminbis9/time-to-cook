@@ -11,6 +11,8 @@ var money: int = 0
 ## 캐릭터 배정 (§11.1): 슬롯("1"=호스트/"2"=게스트) → char_id(String).
 ## 비어 있으면 기본 배정(미트/살구). 준비 단계에서만 변경 가능, 중복 선택 불가.
 var character_picks: Dictionary = {}
+## 슬롯별 플레이어가 만든 프로필 이름. 호스트 이름은 세이브 슬롯 카드에도 표시한다.
+var character_names: Dictionary = {}
 ## 메뉴 판매가 설정 (§8): recipe_id(String) → 원. 없으면 기본가.
 var menu_prices: Dictionary = {}
 ## 대출 (§9): 활성 최대 3건, 개별 원금·이자·만기. 구조는 LoanBook 참조.
@@ -59,6 +61,40 @@ func char_upgrade_level(char_id: String) -> int:
 	return int(char_upgrades.get(char_id, 0))
 
 
+func character_name(slot: String, fallback: String) -> String:
+	var saved: String = String(character_names.get(slot, "")).strip_edges()
+	return saved if not saved.is_empty() else fallback
+
+
+## 완전히 새 프랜차이즈를 시작한다. 캐릭터 프로필은 세이브의 일부이며 슬롯마다 독립적이다.
+func begin_new_profile(host_character_id: String, host_name: String) -> void:
+	var guest_character_id: String = "char.apricot" \
+		if host_character_id != "char.apricot" else "char.mint"
+	menu_prices = {}
+	loans = []
+	next_lid = 1
+	stores = {}
+	market_info = {}
+	broker_state = {}
+	city_econ = {}
+	city_events = {}
+	ad_campaigns = {}
+	character_picks = {
+		"1": host_character_id,
+		"2": guest_character_id,
+	}
+	character_names = {"1": host_name.strip_edges()}
+	char_upgrades = {}
+	char_info_day = {}
+	research = {}
+	research_points = 0
+	set_money(STARTING_MONEY)
+
+
+func reset() -> void:
+	begin_new_profile("char.mint", "")
+
+
 func set_money(value: int) -> void:
 	money = value
 	money_changed.emit(money)
@@ -89,6 +125,7 @@ func to_dict() -> Dictionary:
 		"city_events": city_events.duplicate(true),
 		"ad_campaigns": ad_campaigns.duplicate(true),
 		"character_picks": character_picks.duplicate(),
+		"character_names": character_names.duplicate(),
 		"char_upgrades": char_upgrades.duplicate(),
 		"char_info_day": char_info_day.duplicate(),
 		"research": research.duplicate(),
@@ -116,6 +153,7 @@ func from_dict(data: Dictionary) -> void:
 	city_events = data.get("city_events", {})
 	ad_campaigns = data.get("ad_campaigns", {})
 	character_picks = data.get("character_picks", {})
+	character_names = data.get("character_names", {})
 	char_upgrades = data.get("char_upgrades", {})
 	char_info_day = data.get("char_info_day", {})
 	research = data.get("research", {})

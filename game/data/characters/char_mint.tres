@@ -1,13 +1,21 @@
-[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/defs/character_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/character_portrait_mint.png" id="2"]
 
 [resource]
 script = ExtResource("1")
 id = &"char.mint"
 display_name_ko = "미트"
 specialty = 0
+portrait = ExtResource("2")
+accent_color = Color(0.48, 0.76, 0.68, 1)
+archetype_title_ko = "꼼꼼한 전처리 장인"
+personality_ko = "차분하고 완벽주의적이지만 동료에게는 세심하다."
 backstory_ko = "칼 한 자루로 전국을 돌던 전처리 장인."
+passive_description_ko = "정교한 칼끝 — 칼질 한 번이 2회분 진행된다."
+skill_description_ko = "집중 손질 — 8초 동안 칼질 한 번마다 2회분을 추가한다."
+balance_note_ko = "전처리는 매우 빠르지만 이동과 판매에는 보너스가 없다."
 cut_per_work = 2
 move_speed_mult = 1.0
 skill_name_ko = "집중 손질"

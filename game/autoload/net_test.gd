@@ -1417,16 +1417,11 @@ func _scenario_character_skill() -> void:
 	GameClock.service_length = 30.0
 	GameServer.order_interval_min = 9999.0
 	GameServer.order_interval_max = 9999.0
-	# 캐릭터 선택 (§11.1): 게스트 기본(살구) 중복 거부 → 바질 선택 → 원복
-	GameServer.request_select_character.rpc_id(1, &"char.apricot")
-	await _sleep(0.2)
-	_check(String(GameServer.character_of(1).id) == "char.mint",
-		"중복 선택 거부 — 미트 유지")
+	# 호스트 캐릭터는 새 세이브에서 생성한 뒤 변경할 수 없다 (§11.1).
 	GameServer.request_select_character.rpc_id(1, &"char.basil")
 	await _sleep(0.2)
-	_check(String(GameServer.character_of(1).id) == "char.basil", "바질 선택 반영")
-	GameServer.request_select_character.rpc_id(1, &"char.mint")
-	await _sleep(0.2)
+	_check(String(GameServer.character_of(1).id) == "char.mint",
+		"세이브 귀속 캐릭터 변경 거부 — 미트 유지")
 	var c: CharacterDef = GameServer.character_of(1)
 	_check(String(c.id) == "char.mint", "호스트 캐릭터 = 미트")
 	# 영구 업그레이드 (§11.5): 1단계 20000원 → 스킬 지속 +3초

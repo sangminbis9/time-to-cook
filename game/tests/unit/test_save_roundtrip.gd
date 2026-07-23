@@ -104,3 +104,34 @@ func test_corrupt_save_returns_empty() -> void:
 	file.store_string("이건 JSON이 아님 {{{")
 	file.close()
 	assert_true(SaveService.read_save(TEST_SLOT).is_empty())
+
+
+func test_v3_profile_migration() -> void:
+	var v3: Dictionary = {
+		"version": 3,
+		"franchise": {
+			"money": 25000,
+			"character_picks": {"1": "char.basil"},
+		},
+		"clock": {"day": 7},
+	}
+	DirAccess.make_dir_recursive_absolute(SaveService.SAVE_DIR)
+	var file: FileAccess = FileAccess.open(
+		SaveService.save_path(TEST_SLOT), FileAccess.WRITE)
+	file.store_string(JSON.stringify(v3))
+	file.close()
+	var loaded: Dictionary = SaveService.read_save(TEST_SLOT)
+	assert_eq(int(loaded["version"]), SaveService.SAVE_VERSION)
+	var franchise: Dictionary = loaded["franchise"]
+	assert_true(franchise.has("character_names"), "v4 프로필 이름 필드 추가")
+	var summary: Dictionary = SaveService.slot_summary(TEST_SLOT)
+	assert_eq(String(summary["character_id"]), "char.basil")
+	assert_eq(int(summary["day"]), 7)
+
+
+func test_profile_name_validation() -> void:
+	assert_true(SaveService.valid_profile_name("초록별"))
+	assert_true(SaveService.valid_profile_name("Mint 2"))
+	assert_false(SaveService.valid_profile_name("   "))
+	assert_false(SaveService.valid_profile_name("1234567890123"))
+	assert_false(SaveService.valid_profile_name("나\n쁜이름"))

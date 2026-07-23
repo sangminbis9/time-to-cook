@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="StationDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/defs/station_def.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/station_breading_table.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/station_soy_table.png" id="2"]
 
 [resource]
 script = ExtResource("1")

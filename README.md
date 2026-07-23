@@ -8,7 +8,7 @@
 1. [Godot 4.7-stable Windows 에디터](https://godotengine.org/download/windows/)를 설치한다
    (**정확히 4.7-stable** — 다른 버전은 임포트 캐시가 충돌한다).
 2. `D:\Coding\time-to-cook\game\project.godot`을 연다.
-3. F5로 실행. **새 게임** → 인천 매장에서 시작.
+3. F5로 실행. **새 게임** → 3개 슬롯 중 하나 선택 → 캐릭터와 이름 생성 → 인천 매장에서 시작.
 4. 2인 협동: 한 PC에서 두 번 실행하거나(에디터 F5 + 내보낸 빌드),
    친구가 **참가하기**에 호스트 IP를 입력한다 (기본 포트 7777).
 
@@ -50,9 +50,16 @@ unzip Godot_v4.7-stable_linux.x86_64.zip && ln -s Godot_v4.7-stable_linux.x86_64
 bash game/tests/integration/run_net_tests.sh          # 전체
 bash game/tests/integration/run_net_tests.sh fridge   # 개별
 
-# 플레이스홀더 아트 재생성
+# 생성 원본을 네이티브 픽셀 에셋으로 변환
+python3 tools/import_art.py art_src game/assets/sprites
+
+# 절차 생성 FX 플레이스홀더 재생성
 python3 tools/gen_placeholder_art.py
 ```
+
+타이틀·목재 UI·준비 메뉴 아이콘·캐릭터 3종 플레이 시트와 선택 초상화·직원·메뉴/양념대 변형 아트가
+`game/assets/sprites/`에 반영되어 있다. 고해상도 생성 원본과 재생성 프롬프트는
+`art_src/`, [docs/ART_SPEC.md](docs/ART_SPEC.md)에 보관한다.
 
 ## 구조
 

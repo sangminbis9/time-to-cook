@@ -7,6 +7,11 @@ extends Node2D
 const TILE: int = 32
 const SPEED: float = 96.0
 const ANIM_STEP_SECONDS: float = 0.18
+const CHARACTER_TEXTURES: Dictionary = {
+	&"char.mint": preload("res://assets/sprites/player_mint.png"),
+	&"char.apricot": preload("res://assets/sprites/player_apricot.png"),
+	&"char.basil": preload("res://assets/sprites/player_basil.png"),
+}
 ## 발 판정 박스 모서리 (스프라이트 중심 기준)
 const FOOT_CORNERS: Array[Vector2] = [
 	Vector2(-6, 4), Vector2(6, 4), Vector2(-6, 14), Vector2(6, 14),
@@ -40,8 +45,17 @@ func _ready() -> void:
 	_setup_camera_limits()
 	_prompt.visible = false
 	_highlight.visible = false
-	if peer_id() != 1:
-		_sprite.texture = load("res://assets/sprites/player_apricot.png")
+	GameServer.character_changed.connect(_refresh_character_texture)
+	_refresh_character_texture()
+
+
+func _refresh_character_texture() -> void:
+	var character: CharacterDef = GameServer.character_of(peer_id())
+	if character == null:
+		return
+	var texture: Texture2D = CHARACTER_TEXTURES.get(character.id) as Texture2D
+	if texture != null:
+		_sprite.texture = texture
 
 
 ## 매장 이동으로 레이아웃이 바뀌면 다시 계산 (도시별 크기 §6.6)

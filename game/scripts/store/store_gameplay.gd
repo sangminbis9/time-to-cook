@@ -47,6 +47,8 @@ func _ready() -> void:
 		func(_node: Node) -> void: _refresh_player_visibility.call_deferred())
 	_sync_employee_views()
 	if multiplayer.is_server():
+		var create_initial_save: bool = SceneRouter.pending_new_save
+		SceneRouter.pending_new_save = false
 		if SceneRouter.pending_load_slot > 0:
 			var slot: int = SceneRouter.pending_load_slot
 			SceneRouter.pending_load_slot = 0
@@ -55,6 +57,9 @@ func _ready() -> void:
 			GameServer.server_refresh_candidates()
 		GameServer.server_ensure_peer(1)
 		_spawn_player(1)
+		if create_initial_save:
+			# 캐릭터 프로필과 최초 매장 상태를 슬롯에 즉시 기록한다.
+			SaveService.autosave()
 		# 이미 핸드셰이크를 마친 게스트 + 이후 준비되는 게스트
 		for peer: int in GameServer.client_ready_peers.keys():
 			_spawn_player(peer)

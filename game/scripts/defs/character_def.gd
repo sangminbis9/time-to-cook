@@ -1,15 +1,22 @@
 class_name CharacterDef
 extends Resource
 ## 플레이어 캐릭터 정의 (PLAN.md §11). 능력은 캐릭터의 직접 행동에만 영향(§11.3).
-## 슬라이스: 캐릭터 선택 씬 없이 피어별 자동 배정 (호스트=미트, 게스트=살구).
 
 enum Specialty { PREP, TRANSPORT, SERVICE }
 
 @export var id: StringName
 @export var display_name_ko: String = ""
 @export var specialty: Specialty = Specialty.PREP
+@export var portrait: Texture2D
+@export var accent_color: Color = Color.WHITE
+@export var archetype_title_ko: String = ""
+@export_multiline var personality_ko: String = ""
 ## 배경 설정 (§11.2)
 @export_multiline var backstory_ko: String = ""
+## 선택 화면에 그대로 노출하는 역할·트레이드오프 설명.
+@export_multiline var passive_description_ko: String = ""
+@export_multiline var skill_description_ko: String = ""
+@export_multiline var balance_note_ko: String = ""
 
 ## 패시브: 칼질(K) 1회당 진행 횟수
 @export var cut_per_work: int = 1

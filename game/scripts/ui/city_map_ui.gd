@@ -11,6 +11,7 @@ var _selected_city: String = ""
 
 func _ready() -> void:
 	add_to_group("modal_ui")
+	theme = PixelUi.theme()
 	anchor_left = 0.5
 	anchor_right = 0.5
 	anchor_top = 0.5

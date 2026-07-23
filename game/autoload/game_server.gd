@@ -1386,8 +1386,8 @@ func request_repay_loan(lid: int) -> void:
 
 
 # ── 캐릭터·스킬 (PLAN.md §11) ───────────────────────────────────────
-## 기본 배정 호스트=미트(전처리), 게스트=살구(운반) — 준비 단계에 선택 변경 가능
-## (§11.1의 "세이브 생성 시 선택"을 선택 씬 없이 준비 단계 선택으로 대체, 중복 불가).
+## 호스트 캐릭터는 세이브 생성 화면에서 고정한다. 게스트는 준비 단계에 빈 캐릭터 중
+## 하나를 선택할 수 있으며 중복은 허용하지 않는다.
 ## 능력은 해당 캐릭터의 직접 행동에만 영향 (§11.3 — 직원·자동화 매출 무관).
 
 signal skill_changed(peer: int)
@@ -1411,12 +1411,21 @@ func character_of(peer: int) -> CharacterDef:
 	return Defs.get_def(StringName(id)) as CharacterDef
 
 
-## 캐릭터 선택 (§11.1): 준비 단계 전용, 다른 슬롯과 중복 불가.
+func character_name_of(peer: int) -> String:
+	var character: CharacterDef = character_of(peer)
+	return FranchiseState.character_name(_char_slot(peer), character.display_name_ko)
+
+
+## 게스트 캐릭터 선택: 준비 단계 전용, 호스트 프로필과 중복 불가.
+## 호스트는 §11.1대로 세이브 생성 후 캐릭터를 변경할 수 없다.
 @rpc("any_peer", "call_local", "reliable")
 func request_select_character(char_id: StringName) -> void:
 	if not is_server() or GameClock.phase != GameClock.Phase.PREP:
 		return
 	var peer: int = _sender()
+	if peer == 1:
+		notify_fail.rpc_id(peer, "character_locked")
+		return
 	if not (Defs.has_def(char_id) and Defs.get_def(char_id) is CharacterDef):
 		return
 	var slot: String = _char_slot(peer)
@@ -3024,8 +3033,18 @@ func reset() -> void:
 	live.clear()
 	peer_city.clear()
 	inventories.clear()
+	client_ready_peers.clear()
+	ready_peers.clear()
+	_scheduled_events.clear()
+	pending_guest_inventory.clear()
+	skill_states.clear()
+	job_candidates.clear()
 	next_iid = 1
+	next_eid = 1
+	disposed_today = 0
 	_layout_cache.clear()
+	GameClock.from_dict({})
+	FranchiseState.reset()
 
 
 func _in_reach(player_tile: Vector2i, target: Vector2i) -> bool:

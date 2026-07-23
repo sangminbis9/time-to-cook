@@ -1,13 +1,21 @@
-[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/defs/character_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/character_portrait_basil.png" id="2"]
 
 [resource]
 script = ExtResource("1")
 id = &"char.basil"
 display_name_ko = "바질"
 specialty = 2
+portrait = ExtResource("2")
+accent_color = Color(0.46, 0.68, 0.31, 1)
+archetype_title_ko = "다정한 서비스 전문가"
+personality_ko = "눈치가 빠르고 다정하다. 바쁜 순간에도 손님 이름을 기억한다."
 backstory_ko = "홀 서빙 10년 — 손님 얼굴만 봐도 주문이 보인다."
+passive_description_ko = "단골의 미소 — 직접 제출한 주문의 매출이 5% 증가한다."
+skill_description_ko = "만점 응대 — 8초 동안 직접 제출 매출이 추가로 25% 증가한다."
+balance_note_ko = "수익에 강하지만 직접 제출할 때만 적용되고 조리 속도는 그대로다."
 cut_per_work = 1
 move_speed_mult = 1.0
 submit_bonus_mult = 1.05

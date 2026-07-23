@@ -21,6 +21,7 @@ const FAIL_MESSAGES: Dictionary = {
 	"broker_gone": "정보상과 연락이 닿지 않습니다",
 	"no_info_ability": "정보 능력이 없는 캐릭터입니다",
 	"char_taken": "상대가 사용 중인 캐릭터입니다",
+	"character_locked": "이 캐릭터는 현재 세이브에 귀속되어 있습니다",
 	"info_cooldown": "정보망을 아직 다시 쓸 수 없습니다",
 	"research_required": "먼저 연구가 필요합니다",
 	"research_prereq": "선행 연구가 필요합니다",
@@ -158,6 +159,7 @@ func _build_status() -> void:
 	add_child(_status)
 	# 긴급 구매 (§21.2): 연구 완료 시 영업 중 재료 즉시 구매 (2배 단가)
 	_emergency_btn = Button.new()
+	_emergency_btn.theme = PixelUi.theme()
 	_emergency_btn.add_theme_font_size_override("font_size", 11)
 	_emergency_btn.position = Vector2(6, 22)
 	_emergency_btn.visible = false
@@ -333,6 +335,7 @@ func _refresh_event_banner() -> void:
 
 func _build_settlement_panel() -> void:
 	_settlement = PanelContainer.new()
+	_settlement.theme = PixelUi.theme()
 	_settlement.name = "Settlement"
 	_settlement.anchor_left = 0.5
 	_settlement.anchor_right = 0.5
@@ -382,36 +385,45 @@ func _on_day_settled(summary: Dictionary) -> void:
 
 ## 준비 단계 우측 상단 주제 버튼 — 세부 조작은 팝업에서 (매장/직원/경영/지도)
 var _prep_menu: VBoxContainer
+var _prep_panel: PanelContainer
 var _map_button: Button
 
 
 func _build_prep_menu() -> void:
+	_prep_panel = PanelContainer.new()
+	_prep_panel.name = "PrepMenuPanel"
+	_prep_panel.theme = PixelUi.theme()
+	_prep_panel.anchor_left = 1.0
+	_prep_panel.anchor_right = 1.0
+	_prep_panel.offset_left = -126.0
+	_prep_panel.offset_right = -6.0
+	_prep_panel.offset_top = 6.0
+	add_child(_prep_panel)
 	_prep_menu = VBoxContainer.new()
 	_prep_menu.name = "PrepMenu"
-	_prep_menu.anchor_left = 1.0
-	_prep_menu.anchor_right = 1.0
-	_prep_menu.offset_left = -116.0
-	_prep_menu.offset_right = -6.0
-	_prep_menu.offset_top = 6.0
 	_prep_menu.add_theme_constant_override("separation", 4)
-	add_child(_prep_menu)
-	_menu_button("매장", func() -> void: _open_popup(StoreEditUi.new()))
-	_menu_button("직원", func() -> void: _open_popup(StaffUi.new()))
-	_menu_button("경영", func() -> void: _open_popup(ManageUi.new()))
-	_menu_button("캐릭터", func() -> void: _open_popup(CharacterUi.new()))
-	_menu_button("연구", func() -> void: _open_popup(ResearchUi.new()))
-	_map_button = _menu_button("지도", func() -> void: _open_popup(CityMapUi.new()))
-	_menu_button("설정", func() -> void: _open_popup(SettingsUi.new()))
+	_prep_panel.add_child(_prep_menu)
+	_menu_button("매장", &"store", func() -> void: _open_popup(StoreEditUi.new()))
+	_menu_button("직원", &"staff", func() -> void: _open_popup(StaffUi.new()))
+	_menu_button("경영", &"manage", func() -> void: _open_popup(ManageUi.new()))
+	_menu_button("캐릭터", &"character", func() -> void: _open_popup(CharacterUi.new()))
+	_menu_button("연구", &"research", func() -> void: _open_popup(ResearchUi.new()))
+	_map_button = _menu_button(
+		"지도", &"map", func() -> void: _open_popup(CityMapUi.new()))
+	_menu_button("설정", &"settings", func() -> void: _open_popup(SettingsUi.new()))
 	GameServer.market_info_changed.connect(_refresh_prep_menu)
 	GameServer.ready_state_changed.connect(_refresh_prep_menu)
 	_refresh_prep_menu()
 
 
-func _menu_button(text: String, handler: Callable) -> Button:
+func _menu_button(
+		text: String, icon_name: StringName, handler: Callable
+	) -> Button:
 	var button: Button = Button.new()
 	button.text = text
 	button.add_theme_font_size_override("font_size", 13)
 	button.custom_minimum_size = Vector2(110, 28)
+	PixelUi.decorate_button(button, icon_name)
 	button.pressed.connect(handler)
 	_prep_menu.add_child(button)
 	return button
@@ -424,7 +436,7 @@ func _open_popup(popup: Control) -> void:
 
 
 func _refresh_prep_menu() -> void:
-	_prep_menu.visible = GameClock.phase == GameClock.Phase.PREP
+	_prep_panel.visible = GameClock.phase == GameClock.Phase.PREP
 	# 재조사 권장 도시 수 배지 (§7.5)
 	var recheck: int = MarketReport.recheck_count(
 		FranchiseState.market_info, GameClock.day)

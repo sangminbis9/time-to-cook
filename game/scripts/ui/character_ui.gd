@@ -1,6 +1,6 @@
 class_name CharacterUi
 extends PanelContainer
-## 캐릭터 팝업 (준비 단계 전용): 내 캐릭터 정보 + 영구 업그레이드 구매 (§11).
+## 캐릭터 팝업 (준비 단계 전용): 저장된 프로필·특성 + 영구 업그레이드 구매 (§11).
 ## HUD 우측 상단 [캐릭터] 버튼으로 연다.
 
 var _rows: VBoxContainer
@@ -8,14 +8,15 @@ var _rows: VBoxContainer
 
 func _ready() -> void:
 	add_to_group("modal_ui")
+	theme = PixelUi.theme()
 	anchor_left = 0.5
 	anchor_right = 0.5
 	anchor_top = 0.5
 	anchor_bottom = 0.5
 	offset_left = -150.0
 	offset_right = 150.0
-	offset_top = -130.0
-	offset_bottom = 130.0
+	offset_top = -150.0
+	offset_bottom = 150.0
 
 	var root: VBoxContainer = VBoxContainer.new()
 	root.add_theme_constant_override("separation", 4)
@@ -43,9 +44,18 @@ func _unhandled_input(event: InputEvent) -> void:
 func _refresh() -> void:
 	for child: Node in _rows.get_children():
 		child.queue_free()
-	var c: CharacterDef = GameServer.character_of(multiplayer.get_unique_id())
+	var peer: int = multiplayer.get_unique_id()
+	var c: CharacterDef = GameServer.character_of(peer)
 	var level: int = FranchiseState.char_upgrade_level(String(c.id))
-	_add_line("%s — 전문: %s" % [c.display_name_ko, _specialty_ko(c)])
+	var portrait: TextureRect = TextureRect.new()
+	portrait.custom_minimum_size = Vector2(64, 64)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.texture = c.portrait
+	_rows.add_child(portrait)
+	_add_line("%s · %s — 전문: %s" % [
+		GameServer.character_name_of(peer), c.display_name_ko, _specialty_ko(c)])
+	_add_line(c.personality_ko)
 	_add_line(c.backstory_ko)
 	if c.cut_per_work > 1:
 		_add_line("패시브: 칼질 1회당 %d회 진행" % c.cut_per_work)
@@ -72,9 +82,12 @@ func _refresh() -> void:
 		_rows.add_child(buy)
 	else:
 		_add_line("업그레이드 완료 (%d/%d)" % [level, c.upgrade_costs.size()])
-	# 캐릭터 선택 (§11.1): 준비 단계 전용, 상대가 쓰는 캐릭터는 선택 불가
-	_add_line("── 캐릭터 선택 ──")
-	var my_slot: String = "1" if multiplayer.get_unique_id() == 1 else "2"
+	# 호스트 캐릭터는 세이브 생성 후 고정. 게스트만 중복되지 않는 캐릭터로 변경 가능.
+	if peer == 1:
+		_add_line("이 캐릭터는 현재 세이브에 귀속되어 변경할 수 없습니다.")
+		return
+	_add_line("── 게스트 캐릭터 선택 ──")
+	var my_slot: String = "2"
 	var other_slot: String = "2" if my_slot == "1" else "1"
 	var other_id: String = String(FranchiseState.character_picks.get(
 		other_slot, GameServer.DEFAULT_PICKS[other_slot]))

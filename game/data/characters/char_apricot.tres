@@ -1,13 +1,21 @@
-[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/defs/character_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/character_portrait_apricot.png" id="2"]
 
 [resource]
 script = ExtResource("1")
 id = &"char.apricot"
 display_name_ko = "살구"
 specialty = 1
+portrait = ExtResource("2")
+accent_color = Color(0.93, 0.56, 0.32, 1)
+archetype_title_ko = "활달한 현장 해결사"
+personality_ko = "호기심이 많고 발이 빠르며 낯선 도시에서도 금세 길을 찾는다."
 backstory_ko = "배달로 단련된 다리 — 매장 안에서도 멈추지 않는다."
+passive_description_ko = "가벼운 발걸음 — 이동속도가 항상 15% 빠르다."
+skill_description_ko = "질주 — 8초 동안 이동속도가 추가로 50% 빨라진다."
+balance_note_ko = "운반과 정보 수집에 강하지만 조리·판매량 자체는 늘리지 않는다."
 cut_per_work = 1
 move_speed_mult = 1.15
 skill_name_ko = "질주"
