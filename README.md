@@ -34,14 +34,16 @@ powershell -ExecutionPolicy Bypass -File scripts/run.ps1
 - Windows 빌드: `powershell -ExecutionPolicy Bypass -File scripts/build.ps1`
 - 짧은 도메인 확인: `powershell -ExecutionPolicy Bypass -File scripts/run.ps1 -Smoke`
 - 공식 Godot 4.7 Windows 템플릿을 `.tools/export-templates/`에 두면 제공 프리셋으로 다시 내보낼 수 있습니다.
-- 새 도트 원화·프롬프트: [art_src/jp_refresh/PROMPTS.md](art_src/jp_refresh/PROMPTS.md). 게임용 260개 리소스와 도시별 가구 128개는 `scripts/import_pixel_art.py`로 반영합니다. Python, Pillow, NumPy가 필요합니다. `generate_content.py`는 이전 기초 리소스/오디오/밸런스 생성기이며 새 아트에 사용하지 않습니다.
+- 현재 도트 원화·프롬프트: [art_src/cozy_overhaul/README.md](art_src/cozy_overhaul/README.md). `scripts/import_cozy_art.py`로 반영하며 Python, Pillow, NumPy가 필요합니다. `jp_refresh`는 이전 아트와 보조 리소스입니다. `generate_content.py`는 이전 기초 리소스/오디오/밸런스 생성기이며 새 아트에 사용하지 않습니다.
 - 스토어 이미지 변형: `scripts/package_art.py`, 한국어 원문 카탈로그: `scripts/localization_catalog.py`.
 - Steam 검토 자료: [release/STEAM_RELEASE.md](release/STEAM_RELEASE.md), [상점 설명 초안](release/STORE_DESCRIPTION_KO.md), `release/steam_art/`, `release/screenshots/`.
 
 이 결과는 사람의 검토를 위한 빌드입니다. 장기 밸런스·모든 PC 환경·외부 WAN QA나 Steam 승인이 완료되었다고 주장하지 않습니다. 간소화되거나 아직 없는 세부 기능은 검토 문서에 명시했습니다.
 
-## 탑다운 도트 아트 개편
+## 3/4 도트 아트 개편
 
-가구 상판과 의자 좌판이 보이는 높은 시점으로 캐릭터·가구·조리 설비·음식·차량·거리·UI를 교체했습니다. 16개 도시마다 식탁·의자·작업대·계산대·냉장고·문·식물·조명이 다르며 플레이어가 새로 설치한 가구에도 적용됩니다. 도시 정보에서 해당 지역 가구 미리보기를 볼 수 있습니다. 원화는 내장 이미지 생성 도구로 제작했으며 도형 조합으로 그리지 않았습니다.
+가구 상판과 앞면, 캐릭터의 얼굴과 몸이 보이는 직교 3/4 시점으로 개편했습니다. 인천의 연결된 L자 주방과 작업 섬, 제주의 현무암·귤 가구, 교토의 격자·다다미, 고베의 버건디 부스를 포함한 16개 도시 배치를 제공합니다. 새 매장은 새 배치를 사용하며 기존 저장의 가구 위치는 유지합니다.
 
-실제 Godot 렌더: `release/visual-refresh/`. 전체 가구 비교: `all-city-furniture.png`, 도시별 화면: `city_도시ID.png`. 도메인 47항목, 13개 UI 화면, 16도시/128가구 연결을 확인했습니다.
+레스토랑은 `TileMapLayer` 바닥과 `Sprite2D` 건축·가구, `AnimatedSprite2D` 인물로 구성합니다. 발 위치를 기준으로 Y 정렬하며 두 칸 식탁·작업대의 설치 검사와 경로 계산도 실제 크기를 사용합니다. 캐릭터는 방향별 걷기, 운반, 칼질, 조리, 청소, 대기, 상호작용 프레임을 사용합니다. 작은 HUD와 그림 카드 메뉴, 다양한 거리 건물·차량·마트 진열대도 반영했습니다.
+
+원화와 생성 기록: [art_src/cozy_overhaul/README.md](art_src/cozy_overhaul/README.md). 재임포트는 `python scripts/import_cozy_art.py`입니다. 강제 색상 수 축소와 복제 프레임 생성을 하지 않습니다. 실제 Godot 화면과 변경 설명은 [release/cozy-overhaul/REVIEW.md](release/cozy-overhaul/REVIEW.md)에 있습니다.

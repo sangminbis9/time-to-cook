@@ -71,13 +71,13 @@ func tick_customer(s: Dictionary,c: Dictionary,dt: float) -> void:
 			var table=w.object_by(s,c.table)
 			if table.is_empty():c.state="queue";c.table="";return
 			c.walk_timeout+=dt
-			if w.walk_actor(s,c,w.obj_pos(table)+Vector2(0,32),45,dt):c.state="waiting";c.timer=40*c.patience
+			if w.walk_actor(s,c,w.seat_position(table),45,dt):c.state="waiting";c.timer=40*c.patience
 			elif c.walk_timeout>25:fail_customer(s,c,false)
 		"counter_walk":
 			var counter=find_kind(s,"counter")
 			if counter.is_empty():fail_customer(s,c,false);return
 			c.walk_timeout+=dt
-			if w.walk_actor(s,c,w.obj_pos(counter)+Vector2(-32,32),45,dt):c.state="waiting";c.timer=25*c.patience
+			if w.walk_actor(s,c,w.seat_position(counter),45,dt):c.state="waiting";c.timer=25*c.patience
 			elif c.walk_timeout>25:fail_customer(s,c,false)
 		"waiting":
 			c.timer-=dt
@@ -141,8 +141,7 @@ func find_kind(s: Dictionary,kind: String,free: bool=false) -> Dictionary:
 	return {}
 
 func adjacent(s: Dictionary,obj: Dictionary) -> Vector2:
-	for delta in [Vector2(0,32),Vector2(-32,0),Vector2(32,0),Vector2(0,-32)]:
-		var point=w.obj_pos(obj)+delta
+	for point in w.approach_points(obj):
 		if not w.solid(s,point,int(obj.floor)):return point
 	return w.obj_pos(obj)+Vector2(0,32)
 

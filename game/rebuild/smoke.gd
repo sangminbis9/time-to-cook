@@ -92,7 +92,8 @@ func run() -> void:
 	check(cmd("vehicle_upgrade",{"id":s.vehicles[0].id}) and w.cargo_capacity(s.vehicles[0])==14,"vehicle upgrade affects cargo capacity")
 	check(cmd("insurance") and not cmd("insurance"),"daily insurance purchase is unique")
 	check(cmd("research",{"id":"parking"}) and cmd("research",{"id":"floors"}) and cmd("floor_add"),"floor expansion research and construction")
-	check(cmd("build",{"kind":"elevator","x":15,"y":9}) and s.objects.filter(func(o):return o.kind=="elevator").size()==2,"elevator connects both floors")
+	# The new two-tile dining table occupies (15,9); use the clear eastern aisle.
+	check(cmd("build",{"kind":"elevator","x":15,"y":7}) and s.objects.filter(func(o):return o.kind=="elevator").size()==2,"elevator connects both floors")
 	var session=Session.new();session.name="Session";root.add_child(session);session.set_process(false);session.world=w;session.connected=true;session.save_root="user://smoke_saves"
 	check(session.save(1),"atomic versioned save")
 	var expected=JSON.stringify(w.state.stores);var expected_cash=w.state.cash

@@ -45,20 +45,18 @@ func make_store(city: String) -> Dictionary:
 		s.retail[ing.id] = 30
 	for recipe in db.all("recipes"):
 		s.prices[recipe.id] = int(recipe.price)
-	var city_def=db.get_def("cities",city)
-	var city_index=db.all("cities").find(city_def)
-	s.width=18+(city_index%3)*2
-	s.height=13+(city_index%3)
-	s.style=city_def.country
-	for spec in [["stock",2,2],["board",4,2],["batter",6,2],["fryer",8,2],["plate",10,2],["fridge",12,2],["counter",14,3],["bench",8,4],["table",3,6],["table",7,6],["table",11,6],["table",3,9],["table",7,9],["table",11,9],["door",15,1],["plant",1,10],["plant",15,10],["extinguisher",1,4]]:
-		s.objects.append(make_object(spec[0],spec[1],spec[2],0))
-	if int(s.width)>18:
-		s.objects.append(make_object("table",15,6,0))
-		s.objects.append(make_object("plant",int(s.width)-2,int(s.height)-3,0))
+	var layouts=JSON.parse_string(FileAccess.get_file_as_string("res://rebuild/data/restaurant_layouts.json"))
+	var layout=layouts[city]
+	s.width=layout.width;s.height=layout.height;s.style=layout.style;s.layout_version=3
+	for spec in layout.objects:
+		var obj=make_object(spec[0],spec[1],spec[2],0)
+		if spec.size()>3:obj.footprint=spec[3]
+		if spec.size()>4:obj.art=spec[4].replace("{city}",city)
+		s.objects.append(obj)
 	return s
 
 func make_object(kind: String, x: int, y: int, floor_id: int) -> Dictionary:
-	return {"id":uid("obj"),"kind":kind,"x":x,"y":y,"floor":floor_id,"rotation":0,"item":null,"lock":"","progress":0.0,"dirty":0.0,"customer":"","slots":[null,null,null],"open_by":"","used_by":""}
+	return {"id":uid("obj"),"kind":kind,"x":x,"y":y,"floor":floor_id,"rotation":0,"footprint":[2,1] if kind in ["table","counter","stock","bench"] else [1,1],"item":null,"lock":"","progress":0.0,"dirty":0.0,"customer":"","slots":[null,null,null],"open_by":"","used_by":""}
 
 func item(stage: String = "raw") -> Dictionary:
 	return {"id":uid("food"),"stage":stage,"progress":0.0,"heat":0.0,"heated":false,"recipe":"fried","cost":unit_price("incheon","chicken")}
@@ -99,7 +97,27 @@ func pos(a: Dictionary) -> Vector2:
 	return Vector2(a.x,a.y)
 
 func obj_pos(a: Dictionary) -> Vector2:
-	return Vector2(a.x*32+16,a.y*32+16)
+	return object_rect(a).get_center()
+
+func object_size(a: Dictionary) -> Vector2:
+	var size=a.get("footprint",[1,1])
+	return Vector2(size[1],size[0]) if a.kind=="table" and int(a.get("rotation",0))%2==1 else Vector2(size[0],size[1])
+
+func object_rect(a: Dictionary) -> Rect2:
+	return Rect2(Vector2(a.x,a.y)*32,object_size(a)*32)
+
+func approach_points(a: Dictionary) -> Array:
+	var rect=object_rect(a);var points=[]
+	for x in range(int(a.x),int(a.x+object_size(a).x)):
+		points.append(Vector2(x*32+16,rect.end.y+16))
+		points.append(Vector2(x*32+16,rect.position.y-16))
+	for y in range(int(a.y),int(a.y+object_size(a).y)):
+		points.append(Vector2(rect.position.x-16,y*32+16));points.append(Vector2(rect.end.x+16,y*32+16))
+	return points
+
+func seat_position(a: Dictionary) -> Vector2:
+	var rect=object_rect(a)
+	return Vector2(rect.position.x+16,rect.end.y+16)
 
 func facing(p: Dictionary) -> Vector2:
 	return [Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2.UP][int(p.face)]
@@ -112,7 +130,7 @@ func target(p: Dictionary) -> Dictionary:
 		if int(obj.floor) != int(p.floor): continue
 		var delta = obj_pos(obj)-pos(p)
 		var distance = delta.length()
-		if distance > 52: continue
+		if distance > 52+maxf(0,object_size(obj).x-1)*12: continue
 		var value = distance - 22.0 * facing(p).dot(delta.normalized())
 		if value < score:
 			score = value
@@ -138,7 +156,7 @@ func solid(s: Dictionary, point: Vector2, floor_id: int) -> bool:
 	if point.x < 40 or point.x > (int(s.get("width",18))-1)*32-8 or point.y < 43 or point.y > (int(s.get("height",13))-1)*32-20: return true
 	for obj in s.objects:
 		if int(obj.floor)!=floor_id or obj.kind in ["door","stairs","lamp","parking"]:continue
-		if Rect2(obj_pos(obj)-Vector2(19,14),Vector2(38,29)).has_point(point):return true
+		if object_rect(obj).grow_individual(3,-2,3,-2).has_point(point):return true
 	return false
 
 func route(s: Dictionary, from: Vector2, destination: Vector2, floor_id: int = 0) -> Array:

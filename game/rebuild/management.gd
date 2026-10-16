@@ -57,7 +57,7 @@ func command(peer: String, action: String, a: Dictionary) -> bool:
 			if e.is_empty() or not st.stores.has(city) or city==e.store:return false
 			var cost=500 if w.db.get_def("cities",city).country==w.db.get_def("cities",e.store).country else 2500
 			if not w.pay(cost,"직원 이동"):return false
-			release_employee(e);e.store=city;e.x=288.0;e.y=176.0;e.floor=0;return true
+			release_employee(e);e.store=city;e.x=288.0;e.y=208.0;e.floor=0;return true
 		"vehicle_buy":
 			var def=w.db.get_def("vehicles",str(a.get("id","")))
 			if def.is_empty() or s.vehicles.size()>=int(s.parking):w.feedback="주차 공간이 부족합니다.";return false
@@ -231,7 +231,7 @@ func hire(s: Dictionary,job: String) -> bool:
 	var e=w.state.candidates.get(job,{})
 	if e.is_empty() or not w.pay(int(e.fee),"채용"):return false
 	e=e.duplicate(true)
-	e.merge({"store":s.id,"hired":w.state.day,"leave":[],"month":int((int(w.state.day)-1)/30),"illness_count":0,"absence_count":0,"sick_until":0,"absent":0,"last_bonus":-7,"reasons":{},"relationships":{},"requests":["청결","drink"],"used":[],"x":288.0,"y":176.0,"floor":0,"state":"대기","target":"","task":"","progress":0.0,"item":null,"recipe":"fried","workload":0.0,"break_clock":0.0,"last_delta":0.0,"last_reasons":{}})
+	e.merge({"store":s.id,"hired":w.state.day,"leave":[],"month":int((int(w.state.day)-1)/30),"illness_count":0,"absence_count":0,"sick_until":0,"absent":0,"last_bonus":-7,"reasons":{},"relationships":{},"requests":["청결","drink"],"used":[],"x":288.0,"y":208.0,"floor":0,"state":"대기","target":"","task":"","progress":0.0,"item":null,"recipe":"fried","workload":0.0,"break_clock":0.0,"last_delta":0.0,"last_reasons":{}})
 	month_schedule(e)
 	w.state.staff.append(e);w.state.candidates.erase(job)
 	w.log_event("%s 채용 · %s / 특성: %s"%[e.name,e.job,", ".join(e.traits)]);return true
@@ -286,10 +286,10 @@ func build_cost(kind: String) -> int:
 	return {"board":2500,"batter":3000,"fryer":9000,"plate":3000,"counter":4000,"fridge":7000,"table":3500,"bench":1500,"plant":1500,"kiosk":10000,"wall_block":500,"lamp":1200,"chair":500,"extinguisher":3000,"generator":12000,"vent":8000,"drain":6000,"parking":18000,"elevator":26000}.get(kind,-1)
 
 func placement_valid(s: Dictionary,obj: Dictionary,ignore: String="") -> bool:
-	if obj.x<1 or obj.x>int(s.get("width",18))-2 or obj.y<2 or obj.y>int(s.get("height",13))-3:return false
+	if obj.x<1 or obj.x+w.object_size(obj).x>int(s.get("width",18))-1 or obj.y<2 or obj.y+w.object_size(obj).y>int(s.get("height",13))-2:return false
 	if Vector2(obj.x,obj.y).distance_to(Vector2(15,2))<2:return false
 	for other in s.objects:
-		if other.id!=ignore and int(other.floor)==int(obj.floor) and int(other.x)==int(obj.x) and int(other.y)==int(obj.y):return false
+		if other.id!=ignore and int(other.floor)==int(obj.floor) and w.object_rect(other).intersects(w.object_rect(obj)):return false
 	var shadow=s.duplicate(true)
 	if ignore!="":shadow.objects=shadow.objects.filter(func(o):return o.id!=ignore)
 	shadow.objects.append(obj)
@@ -307,8 +307,8 @@ func placement_valid(s: Dictionary,obj: Dictionary,ignore: String="") -> bool:
 	for other in shadow.objects:
 		if int(other.floor)!=int(obj.floor) or other.kind in ["wall_block","plant","lamp","chair"]:continue
 		var reachable=false
-		for delta in [Vector2i.UP,Vector2i.DOWN,Vector2i.LEFT,Vector2i.RIGHT]:
-			if visited.has(Vector2i(other.x,other.y)+delta):reachable=true
+		for point in w.approach_points(other):
+			if visited.has(Vector2i(point/32)):reachable=true
 		if not reachable:return false
 	return true
 

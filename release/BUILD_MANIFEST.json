@@ -1,54 +1,63 @@
 {
-  "version": "0.9.1-art-review",
-  "engine": "4.7.stable.official.5b4e0cb0f",
+  "version": "0.9.2-cozy-review",
+  "engine": "Godot 4.7 stable",
   "platform": "Windows x86_64",
   "build_date": "2026-10-16",
   "published": false,
-  "visual_results": {
-    "captured": [
-      "title",
-      "incheon_business",
-      "city_incheon",
-      "city_seoul",
-      "city_busan",
-      "city_daegu",
-      "city_daejeon",
-      "city_gwangju",
-      "city_ulsan",
-      "city_jeju",
-      "city_tokyo",
-      "city_yokohama",
-      "city_osaka",
-      "city_nagoya",
-      "city_sapporo",
-      "city_fukuoka",
-      "city_kyoto",
-      "city_kobe",
-      "map",
-      "city_preview",
-      "construction",
-      "parking",
-      "road",
-      "retail"
-    ],
-    "cities": 16,
-    "failures": [],
-    "regional_assets_checked": 128,
-    "source": "Godot OpenGL viewport; deterministic isolated visual fixtures",
-    "status": "PASS"
+  "exported_startup_exit": 0,
+  "headless_shutdown_note": "Forced headless shutdown reports retained morning.wav playback; no script or missing-resource startup errors. Full output retained.",
+  "checks": {
+    "domain": {
+      "checks": 47,
+      "failures": [],
+      "status": "PASS"
+    },
+    "ui": {
+      "failures": [],
+      "panels": [
+        "stock",
+        "staff",
+        "cars",
+        "research",
+        "build",
+        "city",
+        "finance",
+        "menu",
+        "skills",
+        "log",
+        "settings",
+        "credits",
+        "help"
+      ],
+      "status": "PASS"
+    },
+    "visual_layout": {
+      "layout_accessibility": [],
+      "screenshots": [
+        "incheon",
+        "jeju",
+        "kyoto",
+        "kobe",
+        "staff",
+        "cars",
+        "neighborhood",
+        "grocery"
+      ],
+      "source": "Godot OpenGL viewport"
+    }
   },
   "files": {
     "README.txt": {
-      "bytes": 736,
-      "sha256": "e44f6eb5d96c178bf5eb5893eeceb3e66829cac206d5a3d1a5780599fc72473c"
+      "bytes": 521,
+      "sha256": "568a3e1c19be7aad696928658644428476fca71b96bf0f023bce67a8d80ec792"
     },
     "TimeToCook.exe": {
       "bytes": 109037568,
-      "sha256": "75a9570b95592c34dff12d8b3cf9ba2b048ad5416deb87fcf4c279e68f9358aa"
+      "sha256": "b01233676e1dd482865d35fd9b931bfc433fee4c334d7436accb51b898ffa8c5"
     },
     "TimeToCook.pck": {
-      "bytes": 7014248,
-      "sha256": "c551fd02896c60db46124c2d2a16c9fa2748e25df8be7282f17aa432f625665d"
+      "bytes": 8755296,
+      "sha256": "411254d757af55cad930da58325efb113f50344e57b49dfa7553c8a041a3372b"
     },
     "LICENSES\\Galmuri-OFL.txt": {
       "bytes": 4453,
@@ -66,49 +75,5 @@
       "bytes": 978,
       "sha256": "6d3221d373ca3b2da13fcaa06593d0efd46ef0b04a4d239b0aa356d8a323c519"
     }
-  },
-  "smoke-results": {
-    "checks": 47,
-    "failures": [],
-    "status": "PASS"
-  },
-  "ui-results": {
-    "failures": [],
-    "panels": [
-      "stock",
-      "staff",
-      "cars",
-      "research",
-      "build",
-      "city",
-      "finance",
-      "menu",
-      "skills",
-      "log",
-      "settings",
-      "credits",
-      "help"
-    ],
-    "status": "PASS"
-  },
-  "ai-results": {
-    "failed": 0,
-    "revenue": 24300,
-    "served": 9,
-    "staff": 7,
-    "status": "PASS",
-    "welfare_visitors": 5
-  },
-  "network-host": {
-    "detail": "guest drove and shopped while host clock advanced; cargo unloaded; repeated RPC charged once",
-    "mode": "host",
-    "pass": true,
-    "seconds": 4.55000000000002
-  },
-  "network-guest": {
-    "detail": "guest snapshot received unloaded cargo",
-    "mode": "guest",
-    "pass": true,
-    "seconds": 3.005018
   }
 }

@@ -17,10 +17,10 @@ config/icon="res://rebuild/assets/jp/food_fried.png"
 
 [display]
 
-window/size/viewport_width=640
-window/size/viewport_height=360
-window/size/window_width_override=1280
-window/size/window_height_override=720
+window/size/viewport_width=800
+window/size/viewport_height=450
+window/size/window_width_override=1600
+window/size/window_height_override=900
 window/stretch/mode="canvas_items"
 
 [rendering]

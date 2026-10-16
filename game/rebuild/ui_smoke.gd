@@ -8,7 +8,7 @@ func _initialize() -> void:call_deferred("run")
 func run() -> void:
 	app=load("res://rebuild/main.tscn").instantiate();root.add_child(app)
 	await process_frame
-	app.session.save_root="user://ui_smoke"
+	app.session.save_root="user://cozy_ui_smoke_%d"%Time.get_ticks_usec()
 	app.show_saves(true)
 	await process_frame
 	var button=find_button(app.ui,"새로 시작")
@@ -25,7 +25,8 @@ func run() -> void:
 		await process_frame
 		await process_frame
 		panels.append(id)
-		if app.panel.size.x>640 or app.panel.size.y>310:failures.append("panel overflow: %s %s"%[id,app.panel.size])
+		var viewport=Vector2(800,450)
+		if app.panel.position.x+app.panel.size.x>viewport.x or app.panel.position.y+app.panel.size.y>viewport.y:failures.append("panel overflow: %s %s"%[id,app.panel.size])
 		if id in ["stock","staff","city"]:
 			await RenderingServer.frame_post_draw
 			root.get_texture().get_image().save_png("res://../release/ui-%s.png"%id)

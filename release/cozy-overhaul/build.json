@@ -1,0 +1,79 @@
+{
+  "version": "0.9.2-cozy-review",
+  "engine": "Godot 4.7 stable",
+  "platform": "Windows x86_64",
+  "build_date": "2026-10-16",
+  "published": false,
+  "exported_startup_exit": 0,
+  "headless_shutdown_note": "Forced headless shutdown reports retained morning.wav playback; no script or missing-resource startup errors. Full output retained.",
+  "checks": {
+    "domain": {
+      "checks": 47,
+      "failures": [],
+      "status": "PASS"
+    },
+    "ui": {
+      "failures": [],
+      "panels": [
+        "stock",
+        "staff",
+        "cars",
+        "research",
+        "build",
+        "city",
+        "finance",
+        "menu",
+        "skills",
+        "log",
+        "settings",
+        "credits",
+        "help"
+      ],
+      "status": "PASS"
+    },
+    "visual_layout": {
+      "layout_accessibility": [],
+      "screenshots": [
+        "incheon",
+        "jeju",
+        "kyoto",
+        "kobe",
+        "staff",
+        "cars",
+        "neighborhood",
+        "grocery"
+      ],
+      "source": "Godot OpenGL viewport"
+    }
+  },
+  "files": {
+    "README.txt": {
+      "bytes": 521,
+      "sha256": "568a3e1c19be7aad696928658644428476fca71b96bf0f023bce67a8d80ec792"
+    },
+    "TimeToCook.exe": {
+      "bytes": 109037568,
+      "sha256": "b01233676e1dd482865d35fd9b931bfc433fee4c334d7436accb51b898ffa8c5"
+    },
+    "TimeToCook.pck": {
+      "bytes": 8755296,
+      "sha256": "411254d757af55cad930da58325efb113f50344e57b49dfa7553c8a041a3372b"
+    },
+    "LICENSES\\Galmuri-OFL.txt": {
+      "bytes": 4453,
+      "sha256": "76b3f3dd55b1f37c31e440e7224ef732f8d1d0db23ca9c4a610f575261c49a4c"
+    },
+    "LICENSES\\Godot-COPYRIGHT.txt": {
+      "bytes": 100108,
+      "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"
+    },
+    "LICENSES\\Godot-LICENSE.txt": {
+      "bytes": 1149,
+      "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
+    },
+    "LICENSES\\ORIGINAL_ASSETS.txt": {
+      "bytes": 978,
+      "sha256": "6d3221d373ca3b2da13fcaa06593d0efd46ef0b04a4d239b0aa356d8a323c519"
+    }
+  }
+}

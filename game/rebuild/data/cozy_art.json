@@ -1,0 +1,3554 @@
+{
+  "assets": {
+    "module": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "board": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "batter": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fryer": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "plate": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "corner": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "stock": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "bench": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "window": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "door": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "shelf": {
+      "size": [
+        64,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "wall_menu": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "rug": {
+      "size": [
+        96,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        3,
+        2
+      ]
+    },
+    "wall_module": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "post": {
+      "size": [
+        16,
+        64
+      ],
+      "anchor": [
+        8,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "clock": {
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        4,
+        8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "barrel": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "sink": {
+      "size": [
+        32,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "floor": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "floor_alt": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "floor_dark": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kitchen": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "wall": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "wall_side": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "grass": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "paving": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "tatami": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "basalt": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "checker": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "birch": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "road": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "road_dash": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "water": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "soil": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "person_0": {
+      "size": [
+        128,
+        480
+      ],
+      "anchor": [
+        -48,
+        -448
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "person_1": {
+      "size": [
+        128,
+        480
+      ],
+      "anchor": [
+        -48,
+        -448
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "person_2": {
+      "size": [
+        128,
+        480
+      ],
+      "anchor": [
+        -48,
+        -448
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "person_3": {
+      "size": [
+        128,
+        480
+      ],
+      "anchor": [
+        -48,
+        -448
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "incheon_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "incheon_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "incheon_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "incheon_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "incheon_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "incheon_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "incheon_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "incheon_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "seoul_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "seoul_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "seoul_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "seoul_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "seoul_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "seoul_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "seoul_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "seoul_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "busan_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "busan_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "busan_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "busan_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "busan_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "busan_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "busan_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "busan_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "jeju_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "jeju_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "jeju_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "jeju_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "jeju_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "jeju_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "jeju_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "jeju_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daegu_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "daegu_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "daegu_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daegu_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "daegu_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "daegu_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daegu_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daegu_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daejeon_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "daejeon_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "daejeon_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daejeon_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "daejeon_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "daejeon_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daejeon_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "daejeon_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "gwangju_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "gwangju_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "gwangju_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "gwangju_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "gwangju_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "gwangju_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "gwangju_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "gwangju_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ulsan_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "ulsan_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "ulsan_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ulsan_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "ulsan_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "ulsan_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ulsan_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ulsan_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kyoto_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kyoto_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "kyoto_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kyoto_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kyoto_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kyoto_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kyoto_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kyoto_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kobe_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kobe_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "kobe_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kobe_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kobe_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kobe_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kobe_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kobe_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "osaka_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "osaka_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "osaka_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "osaka_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "osaka_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "osaka_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "osaka_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "osaka_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "sapporo_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "sapporo_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "sapporo_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "sapporo_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "sapporo_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "sapporo_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "sapporo_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "sapporo_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "tokyo_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "tokyo_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "tokyo_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "tokyo_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "tokyo_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "tokyo_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "tokyo_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "tokyo_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "yokohama_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "yokohama_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "yokohama_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "yokohama_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "yokohama_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "yokohama_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "yokohama_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "yokohama_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "nagoya_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "nagoya_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "nagoya_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "nagoya_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "nagoya_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "nagoya_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "nagoya_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "nagoya_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fukuoka_table": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "fukuoka_table_vertical": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        2
+      ]
+    },
+    "fukuoka_chair": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fukuoka_bench": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "fukuoka_counter": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "fukuoka_fridge": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fukuoka_plant": {
+      "size": [
+        32,
+        48
+      ],
+      "anchor": [
+        0,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fukuoka_lamp": {
+      "size": [
+        24,
+        48
+      ],
+      "anchor": [
+        4,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "guest_0": {
+      "size": [
+        128,
+        384
+      ],
+      "anchor": [
+        -48,
+        -352
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "guest_1": {
+      "size": [
+        128,
+        384
+      ],
+      "anchor": [
+        -48,
+        -352
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "house_cream": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fishmonger": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "bakery": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "grocery_exterior": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "jeju_house": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kyoto_house": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "kobe_house": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "restaurant_exterior": {
+      "size": [
+        128,
+        112
+      ],
+      "anchor": [
+        -48,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "tree": {
+      "size": [
+        64,
+        96
+      ],
+      "anchor": [
+        -16,
+        -64
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "cherry_tree": {
+      "size": [
+        64,
+        96
+      ],
+      "anchor": [
+        -16,
+        -64
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "citrus_tree": {
+      "size": [
+        64,
+        96
+      ],
+      "anchor": [
+        -16,
+        -64
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "garden": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        -16,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "bikes": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        -16,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "harbor": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        -16,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fountain": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        -16,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "fence_garden": {
+      "size": [
+        64,
+        48
+      ],
+      "anchor": [
+        -16,
+        -16
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "steam_0": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "steam_1": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "steam_2": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "steam_3": {
+      "size": [
+        24,
+        32
+      ],
+      "anchor": [
+        4,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "shadow": {
+      "size": [
+        28,
+        10
+      ],
+      "anchor": [
+        2,
+        22
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "shadow_wide": {
+      "size": [
+        64,
+        12
+      ],
+      "anchor": [
+        -16,
+        20
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "lamp_light": {
+      "size": [
+        80,
+        64
+      ],
+      "anchor": [
+        -24,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "window_light": {
+      "size": [
+        96,
+        112
+      ],
+      "anchor": [
+        -32,
+        -80
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "sparkle": {
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        4,
+        8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "dust": {
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        4,
+        8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "leaves": {
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        4,
+        8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "glint": {
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        4,
+        8
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_panel": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_button": {
+      "size": [
+        64,
+        32
+      ],
+      "anchor": [
+        -16,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_hover": {
+      "size": [
+        64,
+        32
+      ],
+      "anchor": [
+        -16,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_pressed": {
+      "size": [
+        64,
+        32
+      ],
+      "anchor": [
+        -16,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_slot": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_slot_selected": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_ticket": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_card": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_hud": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        -16,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "ui_disabled": {
+      "size": [
+        64,
+        32
+      ],
+      "anchor": [
+        -16,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "car_0": {
+      "size": [
+        224,
+        56
+      ],
+      "anchor": [
+        -96,
+        -24
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "car_1": {
+      "size": [
+        224,
+        56
+      ],
+      "anchor": [
+        -96,
+        -24
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "car_3": {
+      "size": [
+        288,
+        64
+      ],
+      "anchor": [
+        -128,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "car_2": {
+      "size": [
+        256,
+        64
+      ],
+      "anchor": [
+        -112,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "car_4": {
+      "size": [
+        256,
+        64
+      ],
+      "anchor": [
+        -112,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "lowwall_kr": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "lowwall_jeju": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "lowwall_kyoto": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "lowwall_kobe": {
+      "size": [
+        64,
+        40
+      ],
+      "anchor": [
+        0,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "window_kr": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "window_jeju": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "window_kyoto": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "window_kobe": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "kitchen_shelf": {
+      "size": [
+        32,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "entry_curtain": {
+      "size": [
+        64,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "painting_kr": {
+      "size": [
+        32,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "painting_jeju": {
+      "size": [
+        32,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "painting_kyoto": {
+      "size": [
+        32,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "painting_kobe": {
+      "size": [
+        32,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    "grocery_produce": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "grocery_meat": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "grocery_grain": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "grocery_sauce": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "grocery_boxes": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "grocery_drinks": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "checkout": {
+      "size": [
+        64,
+        64
+      ],
+      "anchor": [
+        0,
+        -32
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    },
+    "grocery_sign": {
+      "size": [
+        96,
+        40
+      ],
+      "anchor": [
+        -16,
+        -8
+      ],
+      "footprint": [
+        2,
+        1
+      ]
+    }
+  },
+  "cities": {
+    "incheon": {
+      "props": {
+        "table": "incheon_table",
+        "table_vertical": "incheon_table_vertical",
+        "chair": "incheon_chair",
+        "seating_bench": "incheon_bench",
+        "counter": "incheon_counter",
+        "fridge": "incheon_fridge",
+        "plant": "incheon_plant",
+        "lamp": "incheon_lamp"
+      }
+    },
+    "seoul": {
+      "props": {
+        "table": "seoul_table",
+        "table_vertical": "seoul_table_vertical",
+        "chair": "seoul_chair",
+        "seating_bench": "seoul_bench",
+        "counter": "seoul_counter",
+        "fridge": "seoul_fridge",
+        "plant": "seoul_plant",
+        "lamp": "seoul_lamp"
+      }
+    },
+    "busan": {
+      "props": {
+        "table": "busan_table",
+        "table_vertical": "busan_table_vertical",
+        "chair": "busan_chair",
+        "seating_bench": "busan_bench",
+        "counter": "busan_counter",
+        "fridge": "busan_fridge",
+        "plant": "busan_plant",
+        "lamp": "busan_lamp"
+      }
+    },
+    "jeju": {
+      "props": {
+        "table": "jeju_table",
+        "table_vertical": "jeju_table_vertical",
+        "chair": "jeju_chair",
+        "seating_bench": "jeju_bench",
+        "counter": "jeju_counter",
+        "fridge": "jeju_fridge",
+        "plant": "jeju_plant",
+        "lamp": "jeju_lamp"
+      }
+    },
+    "daegu": {
+      "props": {
+        "table": "daegu_table",
+        "table_vertical": "daegu_table_vertical",
+        "chair": "daegu_chair",
+        "seating_bench": "daegu_bench",
+        "counter": "daegu_counter",
+        "fridge": "daegu_fridge",
+        "plant": "daegu_plant",
+        "lamp": "daegu_lamp"
+      }
+    },
+    "daejeon": {
+      "props": {
+        "table": "daejeon_table",
+        "table_vertical": "daejeon_table_vertical",
+        "chair": "daejeon_chair",
+        "seating_bench": "daejeon_bench",
+        "counter": "daejeon_counter",
+        "fridge": "daejeon_fridge",
+        "plant": "daejeon_plant",
+        "lamp": "daejeon_lamp"
+      }
+    },
+    "gwangju": {
+      "props": {
+        "table": "gwangju_table",
+        "table_vertical": "gwangju_table_vertical",
+        "chair": "gwangju_chair",
+        "seating_bench": "gwangju_bench",
+        "counter": "gwangju_counter",
+        "fridge": "gwangju_fridge",
+        "plant": "gwangju_plant",
+        "lamp": "gwangju_lamp"
+      }
+    },
+    "ulsan": {
+      "props": {
+        "table": "ulsan_table",
+        "table_vertical": "ulsan_table_vertical",
+        "chair": "ulsan_chair",
+        "seating_bench": "ulsan_bench",
+        "counter": "ulsan_counter",
+        "fridge": "ulsan_fridge",
+        "plant": "ulsan_plant",
+        "lamp": "ulsan_lamp"
+      }
+    },
+    "kyoto": {
+      "props": {
+        "table": "kyoto_table",
+        "table_vertical": "kyoto_table_vertical",
+        "chair": "kyoto_chair",
+        "seating_bench": "kyoto_bench",
+        "counter": "kyoto_counter",
+        "fridge": "kyoto_fridge",
+        "plant": "kyoto_plant",
+        "lamp": "kyoto_lamp"
+      }
+    },
+    "kobe": {
+      "props": {
+        "table": "kobe_table",
+        "table_vertical": "kobe_table_vertical",
+        "chair": "kobe_chair",
+        "seating_bench": "kobe_bench",
+        "counter": "kobe_counter",
+        "fridge": "kobe_fridge",
+        "plant": "kobe_plant",
+        "lamp": "kobe_lamp"
+      }
+    },
+    "osaka": {
+      "props": {
+        "table": "osaka_table",
+        "table_vertical": "osaka_table_vertical",
+        "chair": "osaka_chair",
+        "seating_bench": "osaka_bench",
+        "counter": "osaka_counter",
+        "fridge": "osaka_fridge",
+        "plant": "osaka_plant",
+        "lamp": "osaka_lamp"
+      }
+    },
+    "sapporo": {
+      "props": {
+        "table": "sapporo_table",
+        "table_vertical": "sapporo_table_vertical",
+        "chair": "sapporo_chair",
+        "seating_bench": "sapporo_bench",
+        "counter": "sapporo_counter",
+        "fridge": "sapporo_fridge",
+        "plant": "sapporo_plant",
+        "lamp": "sapporo_lamp"
+      }
+    },
+    "tokyo": {
+      "props": {
+        "table": "tokyo_table",
+        "table_vertical": "tokyo_table_vertical",
+        "chair": "tokyo_chair",
+        "seating_bench": "tokyo_bench",
+        "counter": "tokyo_counter",
+        "fridge": "tokyo_fridge",
+        "plant": "tokyo_plant",
+        "lamp": "tokyo_lamp"
+      }
+    },
+    "yokohama": {
+      "props": {
+        "table": "yokohama_table",
+        "table_vertical": "yokohama_table_vertical",
+        "chair": "yokohama_chair",
+        "seating_bench": "yokohama_bench",
+        "counter": "yokohama_counter",
+        "fridge": "yokohama_fridge",
+        "plant": "yokohama_plant",
+        "lamp": "yokohama_lamp"
+      }
+    },
+    "nagoya": {
+      "props": {
+        "table": "nagoya_table",
+        "table_vertical": "nagoya_table_vertical",
+        "chair": "nagoya_chair",
+        "seating_bench": "nagoya_bench",
+        "counter": "nagoya_counter",
+        "fridge": "nagoya_fridge",
+        "plant": "nagoya_plant",
+        "lamp": "nagoya_lamp"
+      }
+    },
+    "fukuoka": {
+      "props": {
+        "table": "fukuoka_table",
+        "table_vertical": "fukuoka_table_vertical",
+        "chair": "fukuoka_chair",
+        "seating_bench": "fukuoka_bench",
+        "counter": "fukuoka_counter",
+        "fridge": "fukuoka_fridge",
+        "plant": "fukuoka_plant",
+        "lamp": "fukuoka_lamp"
+      }
+    }
+  },
+  "animation_rows": [
+    "down",
+    "left",
+    "right",
+    "up",
+    "carry",
+    "chop",
+    "cook",
+    "clean"
+  ]
+}

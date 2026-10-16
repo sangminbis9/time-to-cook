@@ -67,6 +67,7 @@ func _ready() -> void:
 func build_theme() -> void:
 	theme=Theme.new();theme.default_font=load("res://assets/fonts/Galmuri11.ttf");theme.default_font_size=int(settings.font_size)
 	for type in ["Label","Button","CheckButton","LineEdit","OptionButton"]:theme.set_color("font_color",type,Color("453d3c"))
+	theme.set_color("font_disabled_color","Button",Color("8a7b66"))
 	for state in ["normal","hover","pressed","focus","disabled"]:
 		var box=pixel_box({"normal":"ui_button","hover":"ui_hover","pressed":"ui_pressed","focus":"ui_hover","disabled":"ui_disabled"}[state],6,7,4)
 		theme.set_stylebox(state,"Button",box);theme.set_stylebox(state,"OptionButton",box)
@@ -75,14 +76,19 @@ func build_theme() -> void:
 	theme.set_stylebox("normal","LineEdit",pixel_box("ui_button",6,7,5))
 	theme.set_stylebox("focus","LineEdit",pixel_box("ui_slot_selected",6,7,5))
 
+func ui_texture(asset: String) -> Texture2D:
+	var path="res://rebuild/assets/cozy/%s.png"%asset
+	if ResourceLoader.exists(path):return load(path)
+	return load("res://rebuild/assets/jp/%s.png"%("ui_panel" if asset=="ui_card" else asset))
+
 func pixel_box(asset: String,edge: int,horizontal: int,vertical: int) -> StyleBoxTexture:
-	var box=StyleBoxTexture.new();box.texture=load("res://rebuild/assets/jp/%s.png"%asset)
+	var box=StyleBoxTexture.new();box.texture=ui_texture(asset)
 	for side in [SIDE_LEFT,SIDE_TOP,SIDE_RIGHT,SIDE_BOTTOM]:box.set_texture_margin(side,edge)
 	box.content_margin_left=horizontal;box.content_margin_right=horizontal;box.content_margin_top=vertical;box.content_margin_bottom=vertical
 	return box
 
 func skin(asset: String,point: Vector2,dimensions: Vector2,parent: Node,edge: int=7) -> NinePatchRect:
-	var node=NinePatchRect.new();node.texture=load("res://rebuild/assets/jp/%s.png"%asset);node.position=point;node.size=dimensions;node.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var node=NinePatchRect.new();node.texture=ui_texture(asset);node.position=point;node.size=dimensions;node.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	node.patch_margin_left=edge;node.patch_margin_right=edge;node.patch_margin_top=edge;node.patch_margin_bottom=edge;parent.add_child(node);return node
 
 func configure_input() -> void:
@@ -117,6 +123,18 @@ func button(text: String,parent: Node,callback: Callable,width: float=0) -> Butt
 func row(parent: Node) -> HBoxContainer:
 	var r=HBoxContainer.new();r.add_theme_constant_override("separation",6);parent.add_child(r);return r
 
+func card(asset: String="",frame: bool=false) -> HBoxContainer:
+	var paper=PanelContainer.new();paper.add_theme_stylebox_override("panel",pixel_box("ui_card",5,9,7));content.add_child(paper)
+	var line=row(paper)
+	if asset!="" and view.textures.has(asset):
+		var icon=TextureRect.new();icon.texture=view.textures[asset]
+		if frame:
+			var region=AtlasTexture.new();region.atlas=icon.texture;region.region=Rect2(0,0,32,48);icon.texture=region
+		elif asset.begins_with("car_"):
+			var region=AtlasTexture.new();region.atlas=icon.texture;region.region=Rect2(icon.texture.get_width()/2,0,icon.texture.get_width()/4,icon.texture.get_height());icon.texture=region
+		icon.custom_minimum_size=Vector2(52,48);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;line.add_child(icon)
+	return line
+
 func note(text: String) -> void:
 	var l=label(text,content,11);l.add_theme_color_override("font_color",Color("826b53"))
 
@@ -124,8 +142,8 @@ func separator() -> void:content.add_child(HSeparator.new())
 
 func show_title() -> void:
 	screen="title";clear_ui()
-	var art=TextureRect.new();art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.texture=load("res://rebuild/assets/jp/title.png");art.position=Vector2.ZERO;art.size=Vector2(640,360);art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;ui.add_child(art)
-	var box=VBoxContainer.new();box.position=Vector2(29,26);box.size=Vector2(207,296);box.add_theme_constant_override("separation",5);ui.add_child(box)
+	var art=TextureRect.new();art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.texture=load("res://rebuild/assets/jp/title.png");art.position=Vector2.ZERO;art.size=Vector2(800,450);art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;ui.add_child(art)
+	var box=VBoxContainer.new();box.position=Vector2(48,60);box.size=Vector2(207,296);box.add_theme_constant_override("separation",5);ui.add_child(box)
 	var logo=label("TIME TO\nCOOK",box,34);logo.add_theme_color_override("font_color",Color("fff0cc"));logo.add_theme_color_override("font_shadow_color",Color("222e42"));logo.add_theme_constant_override("shadow_offset_x",2);logo.add_theme_constant_override("shadow_offset_y",2)
 	var subtitle=label("작은 주방에서, 넓은 세상으로",box,11);subtitle.add_theme_color_override("font_color",Color("fff0cc"));subtitle.add_theme_color_override("font_shadow_color",Color("222e42"));subtitle.add_theme_constant_override("shadow_offset_y",1)
 	button("새로운 식탁",box,func():show_saves(true))
@@ -134,11 +152,11 @@ func show_title() -> void:
 	button("환경 설정",box,func():open_panel("settings"))
 	button("크레딧",box,func():open_panel("credits"))
 	button("종료",box,func():get_tree().quit())
-	var version=label("한국 · 일본  |  1–2인 식당 이야기",ui,10);version.position=Vector2(349,337);version.size=Vector2(280,18);version.add_theme_color_override("font_color",Color("fff0cc"));version.add_theme_color_override("font_shadow_color",Color("222e42"));version.add_theme_constant_override("shadow_offset_y",1)
+	var version=label("한국 · 일본  |  1–2인 식당 이야기",ui,10);version.position=Vector2(509,424);version.size=Vector2(280,18);version.add_theme_color_override("font_color",Color("fff0cc"));version.add_theme_color_override("font_shadow_color",Color("222e42"));version.add_theme_constant_override("shadow_offset_y",1)
 	make_toast()
 
 func make_toast() -> void:
-	toast=Label.new();toast.position=Vector2(35,287);toast.size=Vector2(570,28);toast.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;toast.add_theme_color_override("font_color",Color("fff4db"));toast.add_theme_color_override("font_shadow_color",Color("5a4632"));toast.add_theme_constant_override("shadow_offset_x",1);toast.add_theme_constant_override("shadow_offset_y",1);ui.add_child(toast)
+	toast=Label.new();toast.position=Vector2(115,382);toast.size=Vector2(570,28);toast.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;toast.add_theme_color_override("font_color",Color("fff4db"));toast.add_theme_color_override("font_shadow_color",Color("5a4632"));toast.add_theme_constant_override("shadow_offset_x",1);toast.add_theme_constant_override("shadow_offset_y",1);ui.add_child(toast)
 
 func show_toast(text: String) -> void:
 	if toast==null:make_toast()
@@ -174,7 +192,7 @@ func show_characters() -> void:
 	create_panel("나의 요리사 · 저장 후 변경 불가","characters")
 	var names=["하나 · 전처리 15% 빠름","준 · 조리 능력","보리 · 가방 4칸 / 이동 10%","소라 · 시장 분석 능력"]
 	for i in range(4):
-		var r=row(content);var icon=TextureRect.new();icon.texture=AtlasTexture.new();icon.texture.atlas=load("res://rebuild/assets/jp/person_%d.png"%i);icon.texture.region=Rect2(0,0,32,40);r.add_child(icon)
+		var r=row(content);var icon=TextureRect.new();icon.texture=AtlasTexture.new();icon.texture.atlas=load("res://rebuild/assets/cozy/person_%d.png"%i);icon.texture.region=Rect2(0,0,32,48);r.add_child(icon)
 		button(names[i],r,func():session.start(i,selected_slot);show_game(),330)
 	note("모든 캐릭터가 모든 일을 할 수 있습니다. L: 10초 능력 / 재사용 60초.")
 
@@ -189,26 +207,24 @@ func show_join() -> void:
 
 func show_game() -> void:
 	screen="game";clear_ui();hud=Control.new();hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(hud)
-	skin("ui_hud",Vector2.ZERO,Vector2(640,45),hud)
-	hud_text=label("",hud,12);hud_text.position=Vector2(12,5);hud_text.size=Vector2(444,36)
-	var manage=button("경영 M",hud,func():open_panel("stock"));manage.position=Vector2(466,9)
-	phase_button=button("준비 완료",hud,func():session.send("next_day" if session.world.state.phase=="settlement" else "ready"));phase_button.position=Vector2(540,9)
-	skin("ui_hud",Vector2(0,306),Vector2(640,54),hud)
+	skin("ui_hud",Vector2(8,8),Vector2(230,43),hud)
+	hud_text=label("",hud,11);hud_text.position=Vector2(18,15);hud_text.size=Vector2(214,30)
+	var manage=button("경영 M",hud,func():open_panel("stock"));manage.position=Vector2(628,10)
+	phase_button=button("준비 완료",hud,func():session.send("next_day" if session.world.state.phase=="settlement" else "ready"));phase_button.position=Vector2(704,10)
 	for i in range(10):
-		var slot=skin("ui_slot",Vector2(10+i*29,311),Vector2(27,27),hud,5)
-		var icon=TextureRect.new();icon.position=Vector2(3,3);icon.size=Vector2(21,21);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;slot.add_child(icon)
+		var slot=skin("ui_slot",Vector2(280+i*31,410),Vector2(29,29),hud,5)
+		var icon=TextureRect.new();icon.position=Vector2(4,4);icon.size=Vector2(21,21);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;slot.add_child(icon)
 		var number=label(str((i+1)%10),slot,8);number.position=Vector2(2,0);number.size=Vector2(10,10)
 		inventory_slots.append({"slot":slot,"icon":icon,"number":number})
-	inventory_label=label("",hud,10);inventory_label.position=Vector2(310,312);inventory_label.size=Vector2(320,28)
-	tutorial_label=label("",hud,10);tutorial_label.position=Vector2(10,341);tutorial_label.size=Vector2(590,17)
-	button("›",hud,func():tutorial_step=(tutorial_step+1)%TUTORIAL.size()).position=Vector2(605,335)
-	orders_paper=skin("ui_ticket",Vector2(479,51),Vector2(156,92),hud,9)
-	orders=label("",hud,10);orders.position=Vector2(490,61);orders.size=Vector2(132,220)
+	inventory_label=label("",hud,10);inventory_label.position=Vector2(450,416);inventory_label.size=Vector2(185,18)
+	button("도움말 ?",hud,func():open_panel("help")).position=Vector2(8,413)
+	orders_paper=skin("ui_ticket",Vector2(656,53),Vector2(136,74),hud,9)
+	orders=label("",hud,10);orders.position=Vector2(668,63);orders.size=Vector2(110,0)
 	make_toast();last_phase="";last_location="";fridge_open="";update_hud()
 
 func create_panel(title: String,id: String) -> void:
 	if panel!=null:ui.remove_child(panel);panel.queue_free()
-	panel_id=id;panel=PanelContainer.new();panel.position=Vector2(24,49);panel.size=Vector2(592,258);ui.add_child(panel)
+	panel_id=id;panel=PanelContainer.new();panel.position=Vector2(64,56);panel.size=Vector2(672,338);ui.add_child(panel)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",6);panel.add_child(box)
 	var header=row(box);label(title,header,16);button("닫기 Esc",header,close_panel)
 	if screen=="game" and id not in ["settings","credits","fridge","settlement","help"]:
@@ -216,7 +232,7 @@ func create_panel(title: String,id: String) -> void:
 		var tabs=row(tabs_scroll)
 		for entry in [["stock","발주"],["staff","직원"],["build","건설"],["cars","차량"],["research","연구"],["city","도시"],["finance","금융"],["menu","운영"],["skills","성장"],["log","기록"],["settings","설정"]]:
 			button(entry[1],tabs,func():open_panel(entry[0]))
-	var scroll=ScrollContainer.new();scroll.custom_minimum_size.y=158;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;box.add_child(scroll)
+	var scroll=ScrollContainer.new();scroll.custom_minimum_size.y=236;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;box.add_child(scroll)
 	content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.add_theme_constant_override("separation",7);scroll.add_child(content)
 
 func close_panel() -> void:
@@ -240,7 +256,7 @@ func open_panel(id: String) -> void:
 			create_panel("식재료 · 오늘의 발주","stock")
 			note("준비 단계 도매 발주 · 마감 시 일반 재고는 폐기됩니다. 냉장고의 가열 전 재료만 보존됩니다.")
 			for ing in w.db.all("ingredients"):
-				var r=row(content);label("%s · %d개 / 개당 %s원"%[ing.name,s.stock[ing.id],str(w.unit_price(s.id,ing.id)) if session.authority() else "호스트 기준"],r)
+				var r=card("ingredient_"+ing.id);label("%s · %d개 / 개당 %s원"%[ing.name,s.stock[ing.id],str(w.unit_price(s.id,ing.id)) if session.authority() else "호스트 기준"],r)
 				button("+10",r,func():act("buy_stock",{"ingredient":ing.id,"qty":10}));button("+1",r,func():act("buy_stock",{"ingredient":ing.id,"qty":1}))
 			if "auto_order" in st.research:
 				var r=row(content);label("자동 발주 목표: %d개"%s.auto_order,r);button("0",r,func():act("auto_order",{"qty":0}));button("20",r,func():act("auto_order",{"qty":20}));button("40",r,func():act("auto_order",{"qty":40}))
@@ -249,14 +265,14 @@ func open_panel(id: String) -> void:
 			create_panel("차고 · %d / %d 주차"%[s.vehicles.size(),s.parking],"cars")
 			note("영업 중 뒷문 J → 차 앞 J → WASD 도로 주행 → 마트 J → 구매 → 귀환 J → 차 앞 J 하역")
 			for car in s.vehicles:
-				var r=row(content);label("보유: %s · 화물 %d/%d · 개선 %d단계"%[w.db.title("vehicles",car.kind),car.cargo.size(),w.cargo_capacity(car),car.get("upgrade",0)],r);button("판매 60%",r,func():act("vehicle_sell",{"id":car.id}))
+				var r=card(w.db.get_def("vehicles",car.kind).sprite);label("보유: %s · 화물 %d/%d · 개선 %d단계"%[w.db.title("vehicles",car.kind),car.cargo.size(),w.cargo_capacity(car),car.get("upgrade",0)],r);button("판매 60%",r,func():act("vehicle_sell",{"id":car.id}))
 				button("차량 개선 · 속도 +5% / 적재 +2 · %d원"%roundi(w.db.get_def("vehicles",car.kind).price*.15*(1+int(car.get("upgrade",0)))),content,func():act("vehicle_upgrade",{"id":car.id}))
 			for car in w.db.all("vehicles"):
-				var r=row(content);label("%s · %d원\n%.1f타일/s · %d개 · 왕복 %d원"%[car.name,car.price,car.speed,car.capacity,car.trip],r);button("구입",r,func():act("vehicle_buy",{"id":car.id}))
+				var r=card(car.sprite);label("%s · %d원\n%.1f타일/s · %d개 · 왕복 %d원"%[car.name,car.price,car.speed,car.capacity,car.trip],r);button("구입",r,func():act("vehicle_buy",{"id":car.id}))
 		"research":
 			create_panel("연구소 · %d RP"%st.rp,"research")
 			for def in w.db.all("research"):
-				var r=row(content);label("%s · %d원 / %d RP\n선행: %s"%[def.name,def.cost,def.rp,"없음" if def.prerequisite=="" else w.db.title("research",def.prerequisite)],r)
+				var r=card("shelf");label("%s · %d원 / %d RP\n선행: %s"%[def.name,def.cost,def.rp,"없음" if def.prerequisite=="" else w.db.title("research",def.prerequisite)],r)
 				var b=button("완료" if def.id in st.research else "연구",r,func():act("research",{"id":def.id}));b.disabled=def.id in st.research
 		"build":build_panel(w,s)
 		"city":city_panel(w,st)
@@ -308,13 +324,14 @@ func staff_panel(w,st: Dictionary,s: Dictionary) -> void:
 	create_panel("직원 · 채용 / 계약 / 복리후생","staff")
 	note("7일마다 후보 갱신 · 특성은 채용 후 공개 · 휴가와 결근에도 일급 전액 지급")
 	for job in w.JOBS:
-		var r=row(content);var e=st.candidates.get(job,{})
+		var e=st.candidates.get(job,{});var r=card("" if e.is_empty() else "person_%d"%(int(e.get("sprite",0))%4),true)
 		label("%s · %s"%[job,"모집 대기" if e.is_empty() else "%s [%s] 속도 %.2f / 일급 %d / 채용 %d"%[e.name,e.grade,e.speed,e.wage,e.fee]],r,11)
 		if not e.is_empty():button("채용",r,func():act("hire",{"job":job}))
 		var count=int(st.refreshes.get(job,0));button("갱신 %s"%(str(2000*(1<<count)) if count<40 else "불가"),r,func():act("refresh",{"job":job}))
 	separator()
 	for e in st.staff:
-		label("%s [%s] %s · %s · %.1f점 / 일급 %d"%[e.name,e.grade,e.job,w.db.title("cities",e.store),e.satisfaction,e.wage],content,13)
+		var employee_header=card("person_%d"%(int(e.sprite)%4),true)
+		label("%s [%s] %s · %s · %.1f점 / 일급 %d"%[e.name,e.grade,e.job,w.db.title("cities",e.store),e.satisfaction,e.wage],employee_header,13)
 		note("%s | %s | 휴가 %s | 병가 복귀 %d일\n요구 %s / 관계 %s / 최근 원인 %s"%[", ".join(e.traits),e.state,str(e.leave),e.sick_until,str(e.requests),str(e.relationships),str(e.last_reasons)])
 		var r=row(content)
 		for i in range(3):button(["소액 포상","일반 포상","특별 포상"][i],r,func():act("bonus",{"id":e.id,"tier":i}))
@@ -336,8 +353,8 @@ func build_panel(w,s: Dictionary) -> void:
 	var kinds=["board","batter","fryer","plate","bench","table","chair","fridge","counter","kiosk","plant","lamp","wall_block","extinguisher","generator","vent","drain","parking","elevator"]
 	for def in w.db.all("welfare"):kinds.append(def.id)
 	for kind in kinds:
-		var line=row(content);var welfare=w.db.get_def("welfare",kind)
-		var preview=TextureRect.new();preview.texture=view.textures.get(view.regional(kind,s.id));preview.custom_minimum_size=Vector2(28,28);preview.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;preview.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;line.add_child(preview)
+		var line=card();var welfare=w.db.get_def("welfare",kind)
+		var preview=TextureRect.new();preview.texture=view.textures.get(view.regional(kind,s.id));preview.custom_minimum_size=Vector2(52,48);preview.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;preview.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;line.add_child(preview)
 		label("%s · %d원"%[w.STATION_NAMES.get(kind,w.db.title("welfare",kind)),w.management.build_cost(kind)],line)
 		if not welfare.is_empty():label("효과 +%.2f / 고정 %d / 이용 %d"%[welfare.effect,welfare.fixed,welfare.usage],line,10)
 		button("배치",line,func():
@@ -443,24 +460,26 @@ func update_hud() -> void:
 	phase_button.text="다음 날" if st.phase=="settlement" else ("영업 중" if st.phase in ["business","closing"] else ("준비 취소" if st.ready.get(session.local_id(),false) else "준비 완료"))
 	phase_button.disabled=st.phase in ["business","closing"] or (st.phase=="settlement" and not session.authority())
 	var phase={"prep":"준비","business":"영업","closing":"추가 마감","settlement":"정산"}[st.phase]
-	hud_text.text="%d월 %d일  %02d:%02d  %s · %s %d층\n공용 %d원  브랜드 %.1f  매장 %.1f  RP %d"%[int((int(st.day)-1)/30)+1,(int(st.day)-1)%30+1,int(minute/60),minute%60,phase,w.db.title("cities",s.id),int(p.floor)+1,st.cash,st.brand,s.reputation,st.rp]
+	hud_text.text="%d일  %02d:%02d · %s · %s\n%d원   ★ %.0f   RP %d"%[st.day,int(minute/60),minute%60,w.db.title("cities",s.id),phase,st.cash,s.reputation,st.rp]
 	for i in range(inventory_slots.size()):
 		var widgets=inventory_slots[i];widgets.slot.visible=i<p.inventory.size()
 		if i>=p.inventory.size():continue
 		widgets.slot.texture=view.textures["ui_slot_selected" if i==int(p.slot) else "ui_slot"]
 		var item=p.inventory[i]
 		widgets.icon.texture=null if item==null else view.textures.get("food_"+item.stage)
-	inventory_label.text="%d · %s   J 상호작용 / K 작업\nTab 메뉴: %s"%[int(p.slot)+1,food_name(p.inventory[int(p.slot)]),w.db.title("recipes",p.recipe)]
-	tutorial_label.text=TUTORIAL[tutorial_step] if p.location=="store" else {"parking":"WASD 이동 · J 탑승 / 화물 하역 / 주방 출입","road":"WASD 운전 · 오른쪽 마트 90타일 / 왼쪽 식당 · 끝 주차 구역에서 J","retail":"진열대에 다가가 B 장보기 · 아래 출구에서 J 차량으로"}.get(p.location,"")
+	var hotbar_width=p.inventory.size()*31
+	for i in range(inventory_slots.size()):inventory_slots[i].slot.position.x=400-hotbar_width/2+i*31
+	inventory_label.position.x=400+hotbar_width/2+8
+	inventory_label.text="Tab · "+w.db.title("recipes",p.recipe)
 	var tickets=[]
 	for c in s.customers:
 		if c.state=="ordered":tickets.append("%s %s\n%d초 · %d원"%["포장" if c.type=="takeout" else "홀",w.db.title("recipes",c.recipe),int(c.timer),c.price])
-	orders.text="\n".join(tickets.slice(0,6))
+	orders.text="\n".join(tickets.slice(0,3))
 	if p.location=="road":
 		var car=w.vehicle(s,p.vehicle)
 		if not car.is_empty():orders.text="%s\n적재 %d / %d\n마트까지 %d타일"%[w.db.title("vehicles",car.kind),car.cargo.size(),w.cargo_capacity(car),maxi(0,int((2880-car.x)/32))]
 	orders_paper.visible=orders.text!=""
-	orders_paper.size.y=clampf(orders.get_minimum_size().y+24,60,240)
+	orders_paper.size.y=clampf(orders.get_minimum_size().y+24,48,150)
 	audio.set_phase(st.phase)
 	if last_phase!=st.phase:
 		last_phase=st.phase
@@ -515,7 +534,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.physical_keycode==KEY_TAB:
 			var p=session.world.player(session.local_id());var menu=session.world.store_of(p).menu;var next=(menu.find(p.recipe)+1)%menu.size();session.send("recipe_select",{"recipe":menu[next]});show_toast("담을 메뉴: "+session.world.db.title("recipes",menu[next]));return
 	if screen!="game" or panel!=null:return
-	if event.is_action_pressed("interact"):session.send("interact")
+	if event.is_action_pressed("interact"):session.send("interact");view.interaction_until=view.elapsed+.55
 	if event.is_action_pressed("drop"):session.send("drop")
 	if event.is_action_pressed("skill"):session.send("skill")
 	if event is InputEventMouseButton and event.pressed:
@@ -527,7 +546,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var s=session.world.store_of(p)
 			if removing or move_id=="select":
 				for obj in s.objects:
-					if int(obj.floor)==int(p.floor) and int(obj.x)==cell.x and int(obj.y)==cell.y:
+					if int(obj.floor)==int(p.floor) and session.world.object_rect(obj).has_point(Vector2(cell)*32+Vector2(16,16)):
 						if removing:session.send("remove",{"id":obj.id})
 						else:move_id=obj.id;show_toast("새 위치를 클릭하세요.")
 						return
