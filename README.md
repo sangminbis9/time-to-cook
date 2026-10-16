@@ -1,86 +1,47 @@
-# Time to Cook — 힐링 도트 협동 요리 프랜차이즈 타이쿤
+# Time to Cook
 
-탑다운 2D 픽셀 아트, 온라인 2인 협동 요리 게임. Godot 4.7 (GDScript).
-전체 기획은 [PLAN.md](PLAN.md), 현재 구현 상태는 [docs/STATUS.md](docs/STATUS.md) 참조.
+Godot 4.7 stable / GDScript로 새로 구현한 한국어 2D 식당 프랜차이즈 게임입니다. 현재 저장소의 `game/rebuild/`가 실행되는 구현입니다. `PLAN.md`는 보존된 설계 사양이며, 이전 폴더의 코드는 실행과 내보내기에서 제외되어 있습니다.
 
-## 플레이 방법 (Windows)
+## 실행
 
-1. [Godot 4.7-stable Windows 에디터](https://godotengine.org/download/windows/)를 설치한다
-   (**정확히 4.7-stable** — 다른 버전은 임포트 캐시가 충돌한다).
-2. `D:\Coding\time-to-cook\game\project.godot`을 연다.
-3. F5로 실행. **새 게임** → 3개 슬롯 중 하나 선택 → 캐릭터와 이름 생성 → 인천 매장에서 시작.
-4. 2인 협동: 한 PC에서 두 번 실행하거나(에디터 F5 + 내보낸 빌드),
-   친구가 **참가하기**에 호스트 IP를 입력한다 (기본 포트 7777).
+Windows 검토 빌드: `release/windows/TimeToCook.exe`. 같은 폴더의 `TimeToCook.pck`가 필요합니다.
 
-### 조작
+소스 실행:
 
-| 키 | 동작 |
-|---|---|
-| WASD | 이동 |
-| 마우스 좌클릭 | 상호작용 (집기/놓기/스왑/제출/냉장고) |
-| 마우스 우클릭 | 조리 (칼질/튀김옷) |
-| Q | 선택 슬롯 아이템 내려놓기 |
-| 1–3 / 마우스 휠 | 인벤토리 슬롯 선택 |
-| R | 준비 완료 / 다음 날 시작 |
-| L | 캐릭터 액티브 스킬 |
-| Esc | 냉장고·팝업 닫기 |
-
-### 첫 메뉴: 후라이드 닭강정
-
-재료 보관함(생닭) → 도마에서 우클릭×6 칼질 → 튀김옷 작업대에서 우클릭 →
-튀김기 투입 → **정상 구간**(진행 바 민트색)에 꺼내기 → 제출대에 좌클릭.
-너무 오래 두면 과조리(살구색)·탄 상태(갈색)가 되어 폐기해야 한다.
-
-## 개발 (WSL/Linux)
-
-```bash
-# Godot Linux 바이너리 (최초 1회)
-mkdir -p ~/godot && cd ~/godot
-wget https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
-unzip Godot_v4.7-stable_linux.x86_64.zip && ln -s Godot_v4.7-stable_linux.x86_64 godot
-
-# 에셋 임포트 (Windows 에디터가 닫혀 있을 때만)
-~/godot/godot --headless --path game --import
-
-# 단위 테스트 (GUT)
-~/godot/godot --headless --path game -s res://addons/gut/gut_cmdln.gd \
-  -gdir=res://tests/unit -ginclude_subdirs -gexit
-
-# 통합 테스트 (headless 인스턴스 2개, localhost ENet)
-bash game/tests/integration/run_net_tests.sh          # 전체
-bash game/tests/integration/run_net_tests.sh fridge   # 개별
-
-# 생성 원본을 네이티브 픽셀 에셋으로 변환
-python3 tools/import_art.py art_src game/assets/sprites
-
-# 절차 생성 FX 플레이스홀더 재생성
-python3 tools/gen_placeholder_art.py
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run.ps1
 ```
 
-타이틀·목재 UI·준비 메뉴 아이콘·캐릭터 3종 플레이 시트와 선택 초상화·직원·메뉴/양념대 변형 아트가
-`game/assets/sprites/`에 반영되어 있다. 고해상도 생성 원본과 재생성 프롬프트는
-`art_src/`, [docs/ART_SPEC.md](docs/ART_SPEC.md)에 보관한다.
+또는 Godot 4.7에서 `game/project.godot`를 열어 F6/F5로 실행하세요. 이 저장소의 로컬 실행 스크립트는 테스트 저장을 `.tools/rebuild-user/` 아래로 분리합니다. 일반 배포판의 저장 위치는 `%APPDATA%/Godot/app_userdata/Time to Cook/franchise_v2/`입니다. 이전 게임의 저장 파일은 자동 변환하거나 덮어쓰지 않습니다.
 
-## 구조
+## 첫 영업
 
-```
-game/
-├── autoload/    Defs(정의 레지스트리) GameClock(위상 시계) NetworkService(ENet)
-│                GameServer(호스트 권한 상태+모든 게임플레이 RPC)
-│                FranchiseState SaveService SceneRouter NetTest(테스트 드라이버)
-├── scripts/
-│   ├── core/    노드 무관 순수 로직 (인벤토리·조리 상태머신·주문·그리드…)
-│   ├── defs/    Resource 정의 클래스 (ItemDef·StationDef·RecipeDef…)
-│   ├── player/  이동·대상 선택 (로컬 권한)
-│   ├── stations/ui/store/  뷰 레이어 (상태는 전부 GameServer 미러)
-├── data/        .tres 정의 데이터 — 수치 조정은 여기서
-└── tests/       unit/ (GUT) + integration/ (2-인스턴스 시나리오)
-```
+1. 새 게임 → 빈 저장 슬롯 → 캐릭터를 선택합니다.
+2. `경영 M` → `발주`에서 생닭·튀김옷·용기를 각 10개 정도 구입합니다.
+3. 준비 완료 후 WASD로 이동합니다. 재료함 앞 J로 생닭을 집고, 도마 앞 J로 배치합니다.
+4. K를 눌러 칼질 → J 회수 → 튀김옷 작업대 J/K/J → 튀김기 J, 8초 뒤 황금색일 때 J 회수 → 담기 설비 J/K/J.
+5. 손님이 앉은 식탁 또는 포장 계산대에서 J로 주문을 받고, 맞는 완성 음식을 들고 J로 서빙합니다. 식사가 끝난 식탁은 K로 청소합니다.
+6. 숫자 1–9와 0(10번째 칸), 휠로 가방 슬롯 선택. Q로 내려놓기, L 능력, Tab 담을 레시피 선택, Esc 닫기. 냉장고 슬롯 클릭은 교환, Shift+클릭은 빈 가방 칸으로 이동입니다.
+7. 21시 신규 방문이 끝나고, 22시 정산 후 다음 날을 준비합니다. 일반 재고와 음식은 폐기되므로 냉장고에 가열 전 재료를 보관하세요.
 
-**네트워크 원칙**: 클라이언트는 의도 RPC(`request_*`)를 서버(피어 1)에 보내고,
-서버가 검증 후 `_apply_*`를 전원에 브로드캐스트한다. 모든 변이는 `_apply_*`에서만.
-싱글플레이도 로컬 ENet 서버로 동일 경로를 쓴다.
+차량은 준비 중 구매해야 합니다. 영업 중 뒷문 J → 차량 J → 도로에서 오른쪽으로 운전 → 마트 주차 구역 J → 진열대 가까이 이동 후 B → 구매 → 출구 J → 왼쪽으로 귀환 → 주차장 J → 차량 앞 J 하역. 소매가는 도매의 3배이며, 귀환 전에는 매장 재고가 아닙니다.
 
-**주의 (WSL↔Windows 공유)**: `.godot/`은 커밋 금지(자동 재생성),
-Windows 에디터가 열려 있는 동안 WSL에서 `--import` 금지,
-세이브(`user://`)는 OS별로 분리된다.
+온라인: 게임 안 `경영 → 기록 → 협동 호스트 열기`. 친구는 타이틀의 온라인 협동 참가에서 다른 캐릭터와 호스트 IP를 선택합니다. UDP 7777 직접 연결이며 외부 인터넷은 포트포워딩이 필요할 수 있습니다. 공용 세이브와 자금은 호스트 소유입니다.
+
+## 제작과 검토
+
+- 구현 범위, 증거와 제한: [docs/REBUILD_REVIEW.md](docs/REBUILD_REVIEW.md)
+- Windows 빌드: `powershell -ExecutionPolicy Bypass -File scripts/build.ps1`
+- 짧은 도메인 확인: `powershell -ExecutionPolicy Bypass -File scripts/run.ps1 -Smoke`
+- 공식 Godot 4.7 Windows 템플릿을 `.tools/export-templates/`에 두면 제공 프리셋으로 다시 내보낼 수 있습니다.
+- 새 도트 원화·프롬프트: [art_src/jp_refresh/PROMPTS.md](art_src/jp_refresh/PROMPTS.md). 게임용 260개 리소스와 도시별 가구 128개는 `scripts/import_pixel_art.py`로 반영합니다. Python, Pillow, NumPy가 필요합니다. `generate_content.py`는 이전 기초 리소스/오디오/밸런스 생성기이며 새 아트에 사용하지 않습니다.
+- 스토어 이미지 변형: `scripts/package_art.py`, 한국어 원문 카탈로그: `scripts/localization_catalog.py`.
+- Steam 검토 자료: [release/STEAM_RELEASE.md](release/STEAM_RELEASE.md), [상점 설명 초안](release/STORE_DESCRIPTION_KO.md), `release/steam_art/`, `release/screenshots/`.
+
+이 결과는 사람의 검토를 위한 빌드입니다. 장기 밸런스·모든 PC 환경·외부 WAN QA나 Steam 승인이 완료되었다고 주장하지 않습니다. 간소화되거나 아직 없는 세부 기능은 검토 문서에 명시했습니다.
+
+## 탑다운 도트 아트 개편
+
+가구 상판과 의자 좌판이 보이는 높은 시점으로 캐릭터·가구·조리 설비·음식·차량·거리·UI를 교체했습니다. 16개 도시마다 식탁·의자·작업대·계산대·냉장고·문·식물·조명이 다르며 플레이어가 새로 설치한 가구에도 적용됩니다. 도시 정보에서 해당 지역 가구 미리보기를 볼 수 있습니다. 원화는 내장 이미지 생성 도구로 제작했으며 도형 조합으로 그리지 않았습니다.
+
+실제 Godot 렌더: `release/visual-refresh/`. 전체 가구 비교: `all-city-furniture.png`, 도시별 화면: `city_도시ID.png`. 도메인 47항목, 13개 UI 화면, 16도시/128가구 연결을 확인했습니다.

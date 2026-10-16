@@ -1,0 +1,42 @@
+[
+  {
+    "id": "D",
+    "fee": 3000,
+    "wage": 700,
+    "contract": 7,
+    "rare": 0.01,
+    "traits": 1
+  },
+  {
+    "id": "C",
+    "fee": 6000,
+    "wage": 1200,
+    "contract": 10,
+    "rare": 0.02,
+    "traits": 2
+  },
+  {
+    "id": "B",
+    "fee": 12000,
+    "wage": 2000,
+    "contract": 14,
+    "rare": 0.04,
+    "traits": 2
+  },
+  {
+    "id": "A",
+    "fee": 24000,
+    "wage": 3300,
+    "contract": 21,
+    "rare": 0.07,
+    "traits": 3
+  },
+  {
+    "id": "S",
+    "fee": 48000,
+    "wage": 5000,
+    "contract": 30,
+    "rare": 0.12,
+    "traits": 3
+  }
+]

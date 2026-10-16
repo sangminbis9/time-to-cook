@@ -1,0 +1,114 @@
+[
+  {
+    "id": "sweet",
+    "name": "달콤한 양념",
+    "cost": 8000,
+    "rp": 4,
+    "prerequisite": ""
+  },
+  {
+    "id": "spicy",
+    "name": "매운맛 연구",
+    "cost": 12000,
+    "rp": 6,
+    "prerequisite": "sweet"
+  },
+  {
+    "id": "soy",
+    "name": "간장 배합",
+    "cost": 10000,
+    "rp": 5,
+    "prerequisite": ""
+  },
+  {
+    "id": "garlic",
+    "name": "마늘 풍미",
+    "cost": 15000,
+    "rp": 8,
+    "prerequisite": "soy"
+  },
+  {
+    "id": "jeju",
+    "name": "감귤 레시피",
+    "cost": 20000,
+    "rp": 10,
+    "prerequisite": "sweet"
+  },
+  {
+    "id": "overseas",
+    "name": "일본 진출",
+    "cost": 60000,
+    "rp": 25,
+    "prerequisite": "soy"
+  },
+  {
+    "id": "teriyaki",
+    "name": "테리야키 레시피",
+    "cost": 25000,
+    "rp": 12,
+    "prerequisite": "overseas"
+  },
+  {
+    "id": "kiosk",
+    "name": "키오스크",
+    "cost": 18000,
+    "rp": 8,
+    "prerequisite": ""
+  },
+  {
+    "id": "auto_order",
+    "name": "자동 발주",
+    "cost": 25000,
+    "rp": 10,
+    "prerequisite": ""
+  },
+  {
+    "id": "supply",
+    "name": "공급 계약 · 도매 5% 절약",
+    "cost": 32000,
+    "rp": 15,
+    "prerequisite": "auto_order"
+  },
+  {
+    "id": "parking",
+    "name": "주차 확장",
+    "cost": 16000,
+    "rp": 8,
+    "prerequisite": ""
+  },
+  {
+    "id": "floors",
+    "name": "다층 매장",
+    "cost": 45000,
+    "rp": 20,
+    "prerequisite": "parking"
+  },
+  {
+    "id": "logistics",
+    "name": "글로벌 물류",
+    "cost": 80000,
+    "rp": 30,
+    "prerequisite": "overseas"
+  },
+  {
+    "id": "equipment",
+    "name": "튀김 안전창 확장",
+    "cost": 22000,
+    "rp": 10,
+    "prerequisite": ""
+  },
+  {
+    "id": "marketing",
+    "name": "브랜드 캠페인",
+    "cost": 24000,
+    "rp": 10,
+    "prerequisite": ""
+  },
+  {
+    "id": "interior",
+    "name": "고급 인테리어",
+    "cost": 16000,
+    "rp": 8,
+    "prerequisite": ""
+  }
+]

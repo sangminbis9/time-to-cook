@@ -1,3 +1,6 @@
 .godot/
 .tools/
 __pycache__/
+/release/windows/*.exe
+/release/windows/*.pck
+/release/*.zip

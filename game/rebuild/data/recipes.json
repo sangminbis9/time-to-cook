@@ -1,0 +1,86 @@
+[
+  {
+    "id": "fried",
+    "name": "후라이드 닭강정",
+    "price": 2700,
+    "deadline": 95,
+    "sauce": "",
+    "unlock": "",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  },
+  {
+    "id": "sweet",
+    "name": "달콤한 양념",
+    "price": 3200,
+    "deadline": 105,
+    "sauce": "sauce",
+    "unlock": "sweet",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  },
+  {
+    "id": "spicy",
+    "name": "매운 양념",
+    "price": 3400,
+    "deadline": 110,
+    "sauce": "pepper",
+    "unlock": "spicy",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  },
+  {
+    "id": "soy",
+    "name": "간장 닭강정",
+    "price": 3200,
+    "deadline": 105,
+    "sauce": "soy",
+    "unlock": "soy",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  },
+  {
+    "id": "garlic",
+    "name": "마늘 닭강정",
+    "price": 3500,
+    "deadline": 110,
+    "sauce": "garlic",
+    "unlock": "garlic",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  },
+  {
+    "id": "teriyaki",
+    "name": "테리야키",
+    "price": 3900,
+    "deadline": 115,
+    "sauce": "soy",
+    "unlock": "teriyaki",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  },
+  {
+    "id": "jeju",
+    "name": "제주 감귤",
+    "price": 3800,
+    "deadline": 110,
+    "sauce": "citrus",
+    "unlock": "jeju",
+    "cut": 4,
+    "fry": 8,
+    "normal_end": 15,
+    "burn": 23
+  }
+]

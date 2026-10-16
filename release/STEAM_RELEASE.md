@@ -1,0 +1,13 @@
+# Windows / Steam human review handoff
+
+Nothing has been published or uploaded. No Valve certification or approval is claimed.
+
+1. Run `windows/TimeToCook.exe` with `TimeToCook.pck` beside it. Review the complete day, manual cooking and staff automation, saved games, controller requirements, and two-person direct-IP play on the intended PCs. Read `../docs/REBUILD_REVIEW.md` for scope and unverified areas before choosing a release date.
+2. Establish the publisher's Steamworks app/depot IDs and commercial/legal ownership details. No IDs, accounts, credentials or paid services have been created by this task.
+3. Upload only the reviewed Windows distribution and licenses through the publisher's SteamPipe workflow. Set the launch option to `TimeToCook.exe`, Windows x86_64. Code signing is not configured.
+4. Review `STORE_DESCRIPTION_KO.md` and the original `steam_art/` files. The current official [asset overview](https://partner.steamgames.com/doc/store/assets) lists header 920×430, small 462×174, main 1232×706, vertical 748×896, library capsule 600×900, hero 3840×1240, logo up to 1280×720 and screenshots at least 1920×1080. Dimensions were checked against that source on 2026-10-16. These exports still need composition and readability review in Steamworks previews.
+5. Use the 1920×1080 engine captures in `screenshots/` as the starting point for screenshot review. They are actual rendering, not concept images; the capture scenario is scripted. See `screenshots/provenance.json` for raw viewport dimensions and nearest-neighbor delivery scaling. Native 1280×720 visual fixtures for all 16 cities and the furniture catalog are in `visual-refresh/`. The title, sprites, tiles and UI art use AI-generated original bitmaps; prompts and source provenance are in `../art_src/jp_refresh/`. Complete Steam's content survey accurately, including applicable AI-content disclosures, age ratings, support/contact details and supported languages.
+6. Do not advertise Steam lobby integration, relay networking, Steam Cloud, SDK achievements, gamepad-only support or Steam Deck verification. Current multiplayer uses ENet/UDP port 7777 and direct IP. Saves are local to the host.
+7. Complete Valve's store and build reviews and the publisher's remaining launch steps. This repository does not execute Steam upload, publishing, payments or release actions.
+
+Rebuild with Godot 4.7 stable and its official Windows templates using `../scripts/build.ps1`. The template paths in the preset point at `.tools/export-templates/`; download from the [official 4.7 archive](https://godotengine.org/download/archive/4.7-stable/) on a clean machine. No third-party code was downloaded except the official engine export templates.

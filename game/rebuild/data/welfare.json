@@ -1,0 +1,74 @@
+[
+  {
+    "id": "locker",
+    "name": "개인 사물함",
+    "price": 6000,
+    "effect": 0.3,
+    "fixed": 0,
+    "usage": 0,
+    "duration": 0
+  },
+  {
+    "id": "climate",
+    "name": "냉난방 설비",
+    "price": 16000,
+    "effect": 0.45,
+    "fixed": 100,
+    "usage": 0,
+    "duration": 0
+  },
+  {
+    "id": "lounge",
+    "name": "휴게 공간",
+    "price": 12000,
+    "effect": 0.75,
+    "fixed": 0,
+    "usage": 0,
+    "duration": 8
+  },
+  {
+    "id": "meal",
+    "name": "직원 식사 공간",
+    "price": 24000,
+    "effect": 0.9,
+    "fixed": 0,
+    "usage": 150,
+    "duration": 12
+  },
+  {
+    "id": "drink",
+    "name": "음료대",
+    "price": 5000,
+    "effect": 0.3,
+    "fixed": 0,
+    "usage": 40,
+    "duration": 3
+  },
+  {
+    "id": "toilet",
+    "name": "직원 전용 화장실",
+    "price": 20000,
+    "effect": 0.3,
+    "fixed": 0,
+    "usage": 20,
+    "duration": 6
+  },
+  {
+    "id": "arcade",
+    "name": "오락 공간",
+    "price": 36000,
+    "effect": 1.05,
+    "fixed": 80,
+    "usage": 0,
+    "duration": 12
+  },
+  {
+    "id": "shower",
+    "name": "샤워실",
+    "price": 30000,
+    "effect": 0.6,
+    "fixed": 0,
+    "usage": 60,
+    "duration": 10
+  }
+]

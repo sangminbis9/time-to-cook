@@ -1,0 +1,57 @@
+[
+  {
+    "id": "used_hatchback",
+    "name": "중고 경차",
+    "price": 32000,
+    "speed": 3.5,
+    "capacity": 12,
+    "trip": 200,
+    "accel": 5,
+    "brake": 9,
+    "sprite": "car_0"
+  },
+  {
+    "id": "compact",
+    "name": "소형차",
+    "price": 65000,
+    "speed": 5,
+    "capacity": 16,
+    "trip": 300,
+    "accel": 5,
+    "brake": 9,
+    "sprite": "car_1"
+  },
+  {
+    "id": "sedan",
+    "name": "세단",
+    "price": 110000,
+    "speed": 6.5,
+    "capacity": 20,
+    "trip": 500,
+    "accel": 5,
+    "brake": 9,
+    "sprite": "car_2"
+  },
+  {
+    "id": "van",
+    "name": "소형 밴",
+    "price": 145000,
+    "speed": 4.5,
+    "capacity": 40,
+    "trip": 700,
+    "accel": 5,
+    "brake": 9,
+    "sprite": "car_3"
+  },
+  {
+    "id": "sport_ev",
+    "name": "고속 전기차",
+    "price": 230000,
+    "speed": 8,
+    "capacity": 16,
+    "trip": 450,
+    "accel": 5,
+    "brake": 9,
+    "sprite": "car_4"
+  }
+]

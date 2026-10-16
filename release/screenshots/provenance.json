@@ -1,0 +1,39 @@
+{
+  "source": "Godot 4.7 OpenGL engine viewport, scripted gameplay capture",
+  "raw_dimensions": {
+    "emergency_drive.png": [
+      1920,
+      1080
+    ],
+    "franchise_map.png": [
+      1920,
+      1080
+    ],
+    "gameplay.png": [
+      1280,
+      720
+    ],
+    "grocery_shopping.png": [
+      1920,
+      1080
+    ],
+    "kitchen.png": [
+      1920,
+      1080
+    ],
+    "staff_management.png": [
+      1920,
+      1080
+    ],
+    "title.png": [
+      1920,
+      1080
+    ]
+  },
+  "delivery_dimensions": [
+    1920,
+    1080
+  ],
+  "processing": "nearest-neighbor fit with minimal padding; no gameplay elements added or removed",
+  "title_is_not_gameplay": true
+}

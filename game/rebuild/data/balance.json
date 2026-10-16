@@ -1,0 +1,23 @@
+{
+  "tick": 0.05,
+  "business_seconds": 720,
+  "closing_seconds": 60,
+  "start_cash": 90000,
+  "retail_multiplier": 3,
+  "retail_floor": 2.5,
+  "leave_min": 2,
+  "leave_max": 7,
+  "illness": 0.02,
+  "absence": 0.02,
+  "satisfaction_limit": 3,
+  "queue_wait": 40,
+  "dine_wait": 40,
+  "takeout_wait": 25,
+  "clean": [
+    4,
+    8,
+    12
+  ],
+  "reputation_min": 0.7,
+  "reputation_max": 1.3
+}

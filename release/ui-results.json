@@ -1,0 +1,19 @@
+{
+  "failures": [],
+  "panels": [
+    "stock",
+    "staff",
+    "cars",
+    "research",
+    "build",
+    "city",
+    "finance",
+    "menu",
+    "skills",
+    "log",
+    "settings",
+    "credits",
+    "help"
+  ],
+  "status": "PASS"
+}

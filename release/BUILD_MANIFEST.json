@@ -1,0 +1,114 @@
+{
+  "version": "0.9.1-art-review",
+  "engine": "4.7.stable.official.5b4e0cb0f",
+  "platform": "Windows x86_64",
+  "build_date": "2026-10-16",
+  "published": false,
+  "visual_results": {
+    "captured": [
+      "title",
+      "incheon_business",
+      "city_incheon",
+      "city_seoul",
+      "city_busan",
+      "city_daegu",
+      "city_daejeon",
+      "city_gwangju",
+      "city_ulsan",
+      "city_jeju",
+      "city_tokyo",
+      "city_yokohama",
+      "city_osaka",
+      "city_nagoya",
+      "city_sapporo",
+      "city_fukuoka",
+      "city_kyoto",
+      "city_kobe",
+      "map",
+      "city_preview",
+      "construction",
+      "parking",
+      "road",
+      "retail"
+    ],
+    "cities": 16,
+    "failures": [],
+    "regional_assets_checked": 128,
+    "source": "Godot OpenGL viewport; deterministic isolated visual fixtures",
+    "status": "PASS"
+  },
+  "files": {
+    "README.txt": {
+      "bytes": 736,
+      "sha256": "e44f6eb5d96c178bf5eb5893eeceb3e66829cac206d5a3d1a5780599fc72473c"
+    },
+    "TimeToCook.exe": {
+      "bytes": 109037568,
+      "sha256": "75a9570b95592c34dff12d8b3cf9ba2b048ad5416deb87fcf4c279e68f9358aa"
+    },
+    "TimeToCook.pck": {
+      "bytes": 7014248,
+      "sha256": "c551fd02896c60db46124c2d2a16c9fa2748e25df8be7282f17aa432f625665d"
+    },
+    "LICENSES\\Galmuri-OFL.txt": {
+      "bytes": 4453,
+      "sha256": "76b3f3dd55b1f37c31e440e7224ef732f8d1d0db23ca9c4a610f575261c49a4c"
+    },
+    "LICENSES\\Godot-COPYRIGHT.txt": {
+      "bytes": 100108,
+      "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"
+    },
+    "LICENSES\\Godot-LICENSE.txt": {
+      "bytes": 1149,
+      "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"
+    },
+    "LICENSES\\ORIGINAL_ASSETS.txt": {
+      "bytes": 978,
+      "sha256": "6d3221d373ca3b2da13fcaa06593d0efd46ef0b04a4d239b0aa356d8a323c519"
+    }
+  },
+  "smoke-results": {
+    "checks": 47,
+    "failures": [],
+    "status": "PASS"
+  },
+  "ui-results": {
+    "failures": [],
+    "panels": [
+      "stock",
+      "staff",
+      "cars",
+      "research",
+      "build",
+      "city",
+      "finance",
+      "menu",
+      "skills",
+      "log",
+      "settings",
+      "credits",
+      "help"
+    ],
+    "status": "PASS"
+  },
+  "ai-results": {
+    "failed": 0,
+    "revenue": 24300,
+    "served": 9,
+    "staff": 7,
+    "status": "PASS",
+    "welfare_visitors": 5
+  },
+  "network-host": {
+    "detail": "guest drove and shopped while host clock advanced; cargo unloaded; repeated RPC charged once",
+    "mode": "host",
+    "pass": true,
+    "seconds": 4.55000000000002
+  },
+  "network-guest": {
+    "detail": "guest snapshot received unloaded cargo",
+    "mode": "guest",
+    "pass": true,
+    "seconds": 3.005018
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "working",
+    "name": "운영자금",
+    "principal": 30000,
+    "rate": 0.003,
+    "term": 14,
+    "maturity": 0.02
+  },
+  {
+    "id": "equipment",
+    "name": "설비투자",
+    "principal": 100000,
+    "rate": 0.004,
+    "term": 30,
+    "maturity": 0.02
+  },
+  {
+    "id": "global",
+    "name": "해외진출",
+    "principal": 250000,
+    "rate": 0.005,
+    "term": 60,
+    "maturity": 0.02
+  }
+]

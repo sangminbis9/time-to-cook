@@ -1,0 +1,38 @@
+{
+  "dimensions": {
+    "header_capsule": [
+      920,
+      430
+    ],
+    "small_capsule": [
+      462,
+      174
+    ],
+    "main_capsule": [
+      1232,
+      706
+    ],
+    "vertical_capsule": [
+      748,
+      896
+    ],
+    "library_capsule": [
+      600,
+      900
+    ],
+    "library_hero": [
+      3840,
+      1240
+    ],
+    "page_background": [
+      1438,
+      810
+    ]
+  },
+  "source": "game/rebuild/assets/jp/title.png",
+  "source_tool": "OpenAI built-in image_gen",
+  "prompt": "Original Japanese life-sim pixel art title scene, coastal restaurant at dusk, warm paper lanterns, indigo noren, two young chefs, sage hatchback, detailed red roof and foliage, dark quiet left sky for menu typography, no text, no copied game assets.",
+  "prompt_set": "art_src/jp_refresh/PROMPTS.md",
+  "requirements_source": "https://partner.steamgames.com/doc/store/assets",
+  "review_required": true
+}

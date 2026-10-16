@@ -1,0 +1,42 @@
+[
+  {
+    "id": "chicken",
+    "name": "생닭",
+    "cost": 450
+  },
+  {
+    "id": "flour",
+    "name": "튀김옷",
+    "cost": 100
+  },
+  {
+    "id": "box",
+    "name": "용기",
+    "cost": 50
+  },
+  {
+    "id": "sauce",
+    "name": "양념",
+    "cost": 150
+  },
+  {
+    "id": "pepper",
+    "name": "고추",
+    "cost": 120
+  },
+  {
+    "id": "soy",
+    "name": "간장",
+    "cost": 100
+  },
+  {
+    "id": "garlic",
+    "name": "마늘",
+    "cost": 130
+  },
+  {
+    "id": "citrus",
+    "name": "감귤",
+    "cost": 160
+  }
+]

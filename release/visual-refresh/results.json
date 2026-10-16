@@ -1,0 +1,33 @@
+{
+  "captured": [
+    "title",
+    "incheon_business",
+    "city_incheon",
+    "city_seoul",
+    "city_busan",
+    "city_daegu",
+    "city_daejeon",
+    "city_gwangju",
+    "city_ulsan",
+    "city_jeju",
+    "city_tokyo",
+    "city_yokohama",
+    "city_osaka",
+    "city_nagoya",
+    "city_sapporo",
+    "city_fukuoka",
+    "city_kyoto",
+    "city_kobe",
+    "map",
+    "city_preview",
+    "construction",
+    "parking",
+    "road",
+    "retail"
+  ],
+  "cities": 16,
+  "failures": [],
+  "regional_assets_checked": 128,
+  "source": "Godot OpenGL viewport; deterministic isolated visual fixtures",
+  "status": "PASS"
+}

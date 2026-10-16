@@ -1,0 +1,19 @@
+Time to Cook rebuild asset provenance
+
+game/rebuild/assets/title.png was generated for this project using the built-in
+OpenAI image generation tool. The prompt and source are recorded in
+release/steam_art/manifest.json. Review applicable provider terms and Steam's
+content survey when releasing AI-assisted content.
+
+The other new game sprites, tiles, vehicle sheets, food icons and WAV files were
+created procedurally by scripts/generate_content.py. No stock music, commercial
+game artwork or third-party character art was used in those generated assets.
+
+Galmuri font files were preserved from the repository and are distributed under
+the SIL Open Font License reproduced in Galmuri-OFL.txt.
+
+Godot is distributed under the MIT license. See Godot-LICENSE.txt and
+Godot-COPYRIGHT.txt for engine and bundled third-party notices.
+
+This provenance file does not assign a new license to unrelated repository files
+or purport to establish exclusive rights in AI-generated material.
